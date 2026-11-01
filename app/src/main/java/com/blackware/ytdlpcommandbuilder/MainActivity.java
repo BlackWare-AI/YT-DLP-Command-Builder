@@ -41,6 +41,7 @@ import java.util.concurrent.FutureTask;
 public final class MainActivity extends Activity {
     private static final String ORIGIN = "https://app.local/";
     private static final int EXPORT_TEXT = 41;
+    private static final int IMPORT_BACKUP = 42;
     private static final Set<String> ASSETS = new HashSet<>(Arrays.asList("index.html", "engine.js", "app.js", "styles.css", "notes-ui.js"));
     private WebView web;
     private UpdateController updater;
@@ -153,6 +154,15 @@ public final class MainActivity extends Activity {
             runOnUiThread(task);
             try { return task.get(); } catch (Exception e) { return false; }
         }
+        @JavascriptInterface public void importBackup() {
+            runOnUiThread(() -> {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("application/json");
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivityForResult(intent, IMPORT_BACKUP);
+            });
+        }
         @JavascriptInterface public void exportText(String text, String filename) {
             runOnUiThread(() -> {
                 if (exporting) { toast(UiText.get(MainActivity.this,"Önce açık dışa aktarma işlemini bitirin.","Finish the current export first.")); return; }
@@ -178,6 +188,26 @@ public final class MainActivity extends Activity {
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
         if (request == UpdateController.INSTALL_PERMISSION) { updater.onPermissionResult(); return; }
+        if (request == IMPORT_BACKUP) {
+            if (result != RESULT_OK || data == null || data.getData() == null) return;
+            final Uri source = data.getData();
+            new Thread(() -> {
+                try (java.io.InputStream in = getContentResolver().openInputStream(source);
+                     java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                    if (in == null) throw new java.io.IOException("No input stream");
+                    byte[] buffer = new byte[8192]; int n;
+                    while ((n = in.read(buffer)) != -1) {
+                        if (out.size() + n > 20*1024*1024) throw new java.io.IOException("Backup exceeds 20 MB");
+                        out.write(buffer, 0, n);
+                    }
+                    String content = out.toString("UTF-8");
+                    runOnUiThread(() -> web.evaluateJavascript("window.receiveBackupImport(" + org.json.JSONObject.quote(content) + ")", null));
+                } catch (Exception e) {
+                    runOnUiThread(() -> toast(UiText.get(MainActivity.this,"JSON yedeği okunamadı.","Could not read JSON backup.")));
+                }
+            }, "backup-import").start();
+            return;
+        }
         if (request != EXPORT_TEXT) return;
         exporting = false;
         if (result != RESULT_OK || data == null || data.getData() == null) {
