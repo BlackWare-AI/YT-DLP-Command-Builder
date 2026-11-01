@@ -608,7 +608,42 @@ $('clear').onclick=()=>{
   try { persist(); showHistory(); } catch(e) { state.history=old; alert(t(e.message)); }
   });
 };
-$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.7',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
+function validateImportedBackup(raw) {
+  if(typeof raw!=='string' || raw.length>20*1024*1024) throw Error('Backup file is too large or invalid.');
+  const backup=JSON.parse(raw);
+  if(!backup || backup.app!=='YT-DLP Command Builder' || !validState(backup.state)) throw Error('This is not a valid YT-DLP Command Builder JSON backup.');
+  const incoming=backup.state;
+  if(!Array.isArray(incoming.notesDailyHistory) || typeof incoming.notes!=='string' ||
+     !Array.isArray(incoming.history) || !Array.isArray(incoming.cuts) ||
+     !incoming.history.every(h=>h && typeof h==='object') ||
+     !incoming.notesDailyHistory.every(n=>n && typeof n.date==='string' && typeof n.notes==='string'))
+    throw Error('Backup is incomplete or damaged; existing data is unchanged.');
+  return JSON.parse(JSON.stringify(incoming));
+}
+async function importBackupText(raw) {
+  try {
+    const imported=validateImportedBackup(raw);
+    if(!await askConfirm('Replace current settings, command history, Notes Log, Link Notes and drafts with this JSON backup?',{title:'Import backup',accept:'Restore'})) return;
+    if(storageError) throw Error(storageError);
+    clearTimeout(notesArchiveTimer);
+    const previous=state, prevHistory=savedHistory, prevDaily=savedDailyHistory;
+    try {
+      state=imported;
+      state.settings=Builder.normalizeSettings(state.settings,state.schema);
+      state.schema=2;
+      state.selection={only:'',after:'',before:'',...state.selection};
+      savedHistory=null;savedDailyHistory=null;
+      persist();
+    } catch(e) {state=previous;savedHistory=prevHistory;savedDailyHistory=prevDaily;throw e;}
+    hydrate();showHistoryPanel('commands');
+    $('notesStatus').textContent='Backup restored.';
+    alert('Backup imported successfully.');
+  } catch(e) {alert('Import failed: '+e.message);}
+}
+window.receiveBackupImport=importBackupText;
+$('importSettings').onclick=()=>{if(native && typeof native.importBackup==='function') native.importBackup();else $('importFile').click();};
+$('importFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>20*1024*1024)throw Error('File exceeds 20 MB.');await importBackupText(await file.text());}catch(err){alert(err.message);}};
+$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.8',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
 $('export').onclick=()=>exportText(allHistoryText(),'yt-dlp-history.txt');
 function saveNotes() {
   state.notes=$('notes').value;
