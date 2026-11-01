@@ -378,6 +378,41 @@ $('clear').onclick=()=>{
   try { persist(); showHistory(); } catch(e) { state.history=old; alert(e.message); }
   });
 };
+function validateImportedBackup(raw) {
+  if(typeof raw!=='string' || raw.length>20*1024*1024) throw Error('Yedek dosyası çok büyük veya geçersiz.');
+  const backup=JSON.parse(raw);
+  if(!backup || backup.app!=='YT-DLP Command Builder' || !validState(backup.state)) throw Error('Bu dosya geçerli bir YT-DLP Command Builder JSON yedeği değil.');
+  const incoming=backup.state;
+  if(!Array.isArray(incoming.notesDailyHistory) || typeof incoming.notes!=='string' ||
+     !Array.isArray(incoming.history) || !Array.isArray(incoming.cuts) ||
+     !incoming.history.every(h=>h && typeof h==='object') ||
+     !incoming.notesDailyHistory.every(n=>n && typeof n.date==='string' && typeof n.notes==='string'))
+    throw Error('Yedek eksik veya bozuk; mevcut kayıtlar korunuyor.');
+  return JSON.parse(JSON.stringify(incoming));
+}
+async function importBackupText(raw) {
+  try {
+    const imported=validateImportedBackup(raw);
+    if(!await askConfirm('JSON yedeğindeki ayarlar, işlem geçmişi, Not Günlüğü, Link Notları ve taslaklar mevcut kayıtların yerine tamamen geri yüklensin mi?',{title:'Yedeği içe aktar',accept:'Geri yükle'})) return;
+    if(storageError) throw Error(storageError);
+    clearTimeout(notesArchiveTimer);
+    const previous=state, prevHistory=savedHistory, prevDaily=savedDailyHistory;
+    try {
+      state=imported;
+      state.settings=Builder.normalizeSettings(state.settings,state.schema);
+      state.schema=2;
+      state.selection={only:'',after:'',before:'',...state.selection};
+      savedHistory=null;savedDailyHistory=null;
+      persist();
+    } catch(e) {state=previous;savedHistory=prevHistory;savedDailyHistory=prevDaily;throw e;}
+    hydrate();showHistoryPanel('commands');
+    $('notesStatus').textContent='Yedek geri yüklendi.';
+    alert('Yedek başarıyla içe aktarıldı.');
+  } catch(e) {alert('İçe aktarma başarısız: '+e.message);}
+}
+window.receiveBackupImport=importBackupText;
+$('importSettings').onclick=()=>{if(native && typeof native.importBackup==='function') native.importBackup();else $('importFile').click();};
+$('importFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>20*1024*1024)throw Error('Dosya 20 MB sınırını aşıyor.');await importBackupText(await file.text());}catch(err){alert(err.message);}};
 $('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.7',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
 $('export').onclick=()=>exportText(allHistoryText(),'yt-dlp-history.txt');
 function saveNotes() {
