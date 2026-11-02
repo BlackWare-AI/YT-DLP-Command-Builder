@@ -106,6 +106,20 @@ const root=path.resolve(__dirname,'..');
    assert.equal(await visual.locator('.daily-note-item>summary').evaluate(el=>getComputedStyle(el,'::after').content),'none');
    assert.match(await visual.evaluate(()=>state.notesDailyHistory[0].notes),/Serbest metin/);
    assert.doesNotMatch(await visual.evaluate(()=>allHistoryText()),/Başlık burada|Serbest metin/);
+   // Appending a cleaned clipboard URL after an existing raw URL must start a new note row.
+   const boundaryContext=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Istanbul'});
+   const boundaryPage=await boundaryContext.newPage(),boundaryErrors=[];
+   boundaryPage.on('pageerror',e=>boundaryErrors.push(e.message));
+   await boundaryPage.goto(url);await boundaryPage.click('#notesBtn');
+   await boundaryPage.fill('#notes','https://www.instagram.com/stories/ilk/1 V\nhttps://www.instagram.com/stories/ham/2');
+   await boundaryPage.locator('#notes').evaluate(el=>el.setSelectionRange(el.value.length,el.value.length));
+   await boundaryPage.evaluate(text=>{
+    const data=new DataTransfer();data.setData('text/plain',text);
+    document.getElementById('notes').dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));
+   },'https://www.instagram.com/stories/yeni/3');
+   assert.equal(await boundaryPage.inputValue('#notes'),'stories/ilk/1 V\nstories/ham/2\nstories/yeni/3');
+   assert.deepEqual(boundaryErrors,[]);
+   await boundaryContext.close();
    assert.deepEqual(errors,[]);await context.close();
    console.log('PASS '+edition+': cumulative unique notes, latest annotations, retained deletions, independent commands, no-op saves, dated draft recovery and non-copyable one-row dividers');
   }

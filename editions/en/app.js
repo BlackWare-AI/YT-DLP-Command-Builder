@@ -669,8 +669,15 @@ $('notes').oninput=e=>{
 $('notes').addEventListener('blur',cleanNoteUrls);
 function insertNoteText(text) {
   if(!flushNotesDailyLog()) return;
-  const editor=$('notes');
-  editor.setRangeText(Builder.cleanNoteUrls(text),editor.selectionStart,editor.selectionEnd,'end');
+  const editor=$('notes'), start=editor.selectionStart, end=editor.selectionEnd;
+  const prefix=editor.value.slice(0,start);
+  const lineStart=Math.max(prefix.lastIndexOf('\n'),prefix.lastIndexOf('\r'))+1;
+  const previousLine=prefix.slice(lineStart).trim();
+  const cleaned=Builder.cleanNoteUrls(text);
+  const firstLine=cleaned.split(/\r?\n/).find(line=>line.trim())?.trim() || '';
+  const addLineBreak=Boolean(prefix && !/\s$/.test(prefix) &&
+    Builder.parseUrls(previousLine,true).length && Builder.parseUrls(firstLine,true).length);
+  editor.setRangeText((addLineBreak?'\n':'')+cleaned,start,end,'end');
   if(!cleanNoteUrls()) saveNotes();
 }
 $('notes').addEventListener('paste',e=>{
