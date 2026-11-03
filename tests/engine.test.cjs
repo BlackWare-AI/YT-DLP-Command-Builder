@@ -134,9 +134,18 @@ test('Frame keeps only complete JPG/SClip pairs and cleans failures and fallback
  assert.deepEqual(fs.readFileSync(path.join(f.output,'account-20261029-1530-02.jpg')),f.expected(f.sources.fps30,.5,true));f.clean();
  const before=fs.readdirSync(f.output).sort(), beforeClips=fs.readdirSync(f.clipOutput).sort();
  const broken=f.run(undefined,{}, {FRAME_BEHAVIOR:'broken'});assert.equal(broken.status,1);assert.match(broken.stdout,/Başarılı JPG: 0 \| Başarısız JPG: 1/);assert.match(broken.stderr,/JPG oluşturulamadı veya doğrulanamadı/);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
- const signal=f.run(undefined,{}, {FRAME_BEHAVIOR:'signal'});assert.notEqual(signal.status,0);assert.deepEqual(fs.readdirSync(f.output).sort(),before);f.clean();
- fs.writeFileSync(path.join(f.tools,'mv'),'#!/usr/bin/env bash\nexit 1\n',{mode:0o755});
- const publish=f.run();assert.equal(publish.status,1);assert.match(publish.stderr,/JPG hedef klasöre aktarılamadı/);assert.deepEqual(fs.readdirSync(f.output).sort(),before);f.clean();
+ const signal=f.run(undefined,{}, {FRAME_BEHAVIOR:'signal'});assert.notEqual(signal.status,0);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
+ const realMv=execFileSync('which',['mv'],{encoding:'utf8'}).trim(),moveCount=path.join(f.root,'mv-count');
+ fs.writeFileSync(path.join(f.tools,'mv'),`#!/usr/bin/env bash
+n=0
+[[ -f '${moveCount}' ]] && read -r n < '${moveCount}'
+n=$((n+1))
+printf '%s' "$n" > '${moveCount}'
+[[ "$n" -eq 2 ]] && exit 1
+exec ${B.quote(realMv)} "$@"
+`,{mode:0o755});
+ const publish=f.run();assert.equal(publish.status,1);assert.match(publish.stderr,/JPG veya SClip hedef klasöre aktarılamadı/);
+ assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
 });
 test('Frame migrates removed A/B and times, preserves Story selection, and validates custom time',()=>{
  const old=B.normalizeSettings({mode:'frame',frameTime:'1',frameOutput:'A'},2);assert.equal(old.frameTime,'0.5');assert.equal(old.frameOutput,undefined);
