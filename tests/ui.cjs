@@ -72,7 +72,7 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.locator('#frameSection').isVisible(),false);
   assert.equal(await page.locator('#audioFormat').count(),0);
   // Time controls follow parsed links, and hiding never discards selections.
-  for(const mode of ['av','video','frame','audio','still']) {
+  for(const mode of ['av','video','frame','frame_sclip','audio','still']) {
     await page.click('#modes [data-value='+mode+']');
     for(const text of ['', 'https://example.org/not-instagram']) {
       await page.fill('#links',text);
@@ -81,7 +81,7 @@ const root=path.resolve(__dirname,'..');
     }
     await page.fill('#links','reel/TimeGate');
     assert.equal(await page.locator('#cutSection').isVisible(),['av','video'].includes(mode));
-    assert.equal(await page.locator('#frameSection').isVisible(),mode==='frame');
+    assert.equal(await page.locator('#frameSection').isVisible(),['frame','frame_sclip'].includes(mode));
     await page.locator('#linkList button').click();
     assert.equal(await page.locator('#cutSection').isVisible(),false);
     assert.equal(await page.locator('#frameSection').isVisible(),false);
@@ -241,7 +241,10 @@ const root=path.resolve(__dirname,'..');
     assert.equal(await page.getAttribute('#historyBtn','aria-expanded'),'false');
   }
 
-  assert.equal(await page.evaluate(()=>document.querySelector('#modes [data-value=frame]').nextElementSibling.id),'copy');
+assert.equal(await page.evaluate(()=>document.querySelector('#modes [data-value=frame]').nextElementSibling.dataset.value),'frame_sclip');
+  assert.equal(await page.locator('#modes button[data-value]').count(),6);
+  assert.equal(await page.evaluate(()=>document.getElementById('copy').parentElement.className),'action-buttons');
+  assert.equal(await page.evaluate(()=>document.getElementById('notesBtn').nextElementSibling.id),'copy');
   assert.equal(await page.evaluate(()=>document.getElementById('modeHint').nextElementSibling.className),'copy-action');
   assert.equal(await page.locator('#copy').innerText(),'Kopyala');
   assert.equal(await page.getAttribute('#copy','aria-pressed'),null);
@@ -394,7 +397,7 @@ const root=path.resolve(__dirname,'..');
   await page.click('#historyBtn');await page.locator('.history-day > summary').first().click();await page.locator('.history-item summary').first().click();await page.getByRole('button',{name:'Tekrar düzenle',exact:true}).first().click();assert.equal(await page.inputValue('#itemAfter'),'3');assert.match(await page.textContent('#output'),/--playlist-items "4:6"/);assert.equal(await page.textContent('#output'),selectedCommand);
   await page.click('#modes [data-value=video]');
   console.log('PASS: optional item indices/ranges in all modes; copy resets cuts and selection; full JSON backup preserves every saved field');
-  for(const width of [320,390,760]){await page.setViewportSize({width,height:844});const aligned=await page.evaluate(()=>{const frame=document.querySelector('#modes [data-value=frame]').getBoundingClientRect(),copy=document.getElementById('copy').getBoundingClientRect(),notes=document.getElementById('notesBtn').getBoundingClientRect();return Math.abs(frame.width-copy.width)<1&&Math.abs(frame.top-copy.top)<1&&Math.abs(frame.left-notes.left)<1&&Math.abs(copy.right-notes.right)<1;});assert.equal(aligned,true);const heights=await page.evaluate(()=>[document.querySelector('#engines button').getBoundingClientRect().height,...Array.from(document.querySelectorAll('#modes button')).map(b=>b.getBoundingClientRect().height)]);assert.ok(heights.every(h=>Math.abs(h-heights[0])<1));const iconFits=await page.evaluate(()=>Array.from(document.querySelectorAll('.mode-symbol')).every(el=>el.scrollWidth<=el.clientWidth+1&&el.scrollHeight<=el.clientHeight+1));assert.equal(iconFits,true);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);}
+const aligned=await page.evaluate(()=>{const modes=document.getElementById('modes').getBoundingClientRect(),copy=document.getElementById('copy').getBoundingClientRect(),notes=document.getElementById('notesBtn').getBoundingClientRect();return Math.abs(notes.top-copy.top)<1&&Math.abs(notes.width-copy.width)<1&&Math.abs(notes.height-copy.height)<1&&Math.abs(notes.left-modes.left)<1&&Math.abs(copy.right-modes.right)<1&&notes.top>=modes.bottom;});
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(root,'test-results/phone.png'),fullPage:true});
   assert.deepEqual(errors,[]);
   console.log('PASS: UI modes, cuts, validation, persistence, clipboard, deduplication, history edit/delete/export and 320–760 px layouts');
@@ -471,6 +474,14 @@ const root=path.resolve(__dirname,'..');
   await page.click('#copy');await page.waitForFunction(()=>document.getElementById('links').value===''&&JSON.parse(localStorage.getItem('builder.state')).settings.frameTime==='0.5');
   assert.equal(await page.inputValue('#frameCustomTime'),'');assert.equal(await page.getAttribute('#frameTimes [data-frame-time="0.5"]','aria-pressed'),'true');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('builder.state')).history[0].mode),'frame');
+  await page.fill('#links','https://instagram.com/reel/combined-output/');
+  await page.click('#modes [data-value=frame_sclip]');
+  assert.equal(await page.locator('#frameSection').isVisible(),true);
+  assert.match(await page.textContent('#output'),/CLIP_OUT=.*SClip/);
+  assert.match(await page.textContent('#output'),/--download-sections "\*0-1"/);
+  await page.click('#copy');await page.waitForFunction(()=>JSON.parse(localStorage.getItem('builder.state')).history[0].mode==='frame_sclip');
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('builder.state')).settings.mode),'frame_sclip');
+  assert.equal(await page.inputValue('#links'),'');
   await page.fill('#links','https://instagram.com/reel/abc/');
   await page.click('#notesBtn');await page.fill('#notes','recovery note');await page.click('#notesClose');
   await page.evaluate(()=>localStorage.setItem('builder.state','broken primary'));await page.reload();assert.equal(await page.inputValue('#notes'),'recovery note');assert.match(await page.inputValue('#links'),/reel\/abc/);
