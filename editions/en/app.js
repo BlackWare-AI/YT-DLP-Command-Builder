@@ -55,6 +55,7 @@ const english={
   "Tek JPG · geçici video otomatik silinir. FFmpeg gerekir.": "One JPG frame · temporary video is deleted. Requires FFmpeg.",
   "JPG + 1 sn video · FFmpeg gerekir.": "JPG + 1 sec clip · Requires FFmpeg.",
   "İlk saniyeden seçilen zamanda tek JPG kare; geçici video silinir.": "One JPG frame at the selected time in the first second; temporary video is deleted.",
+  "İlk saniyeden bir JPG kare ve aynı 1 saniyelik sessiz video birlikte kaydedilir.": "One JPG frame and the same first-second silent video are saved together.",
   "İlk saniyeden seçilen JPG + aynı 1 saniyelik video; SClip ve Frame klasörlerine kaydedilir.": "A selected JPG frame from the first second + that same one-second clip, saved to the Frame and SClip folders.",
   "Komut": "Command",
   "Komutu göster": "Show command",
@@ -393,7 +394,7 @@ function exportText(text,filename) {
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function historyText(records) {
-  return records.map(h=>new Date(h.date).toLocaleString(locale())+' | '+linkCount(Array.isArray(h.urls) ? h.urls.length : h.count)+' | '+h.mode+' | '+h.engine+
+  return records.map(h=>new Date(h.date).toLocaleString(locale())+' | '+linkCount(Array.isArray(h.urls) ? h.urls.length : h.count)+' | '+({frame:t('Yalnızca Kare'),frame_sclip:t('Kare + SClip'),still:t('Kısa Kesit')}[h.mode] || h.mode)+' | '+h.engine+
     t('\nYalnızca komut oluşturuldu ve kopyalandı.\n')+(h.urls || []).join('\n')+'\n'+
     (h.snapshot ? JSON.stringify(h.snapshot.settings,null,2)+t('\nÖğe seçimi: ')+JSON.stringify(h.snapshot.selection || {})+t('\nKesitler: ')+JSON.stringify(h.snapshot.cuts)+'\n' : '')+h.command).join('\n\n');
 }
