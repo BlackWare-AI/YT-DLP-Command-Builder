@@ -347,7 +347,7 @@ test('English changes only Frame messages and leaves download options and paths 
 test('English Frame + SClip translates paired-output messages and keeps the same command structure',()=>{
  const original=input({mode:'frame_sclip',cookies:'$HOME/Türkçe/cookies.txt'});
  const tr=B.build(original).command,en=B.build({...original,language:'en'}).command;
- assert.match(en,/Successful pairs: %d \\| Failed: %d/);assert.doesNotMatch(en,/Başarılı çift:|Başarısız:/);
+ assert.match(en,/Successful pairs: %d \| Failed: %d/);assert.doesNotMatch(en,/Başarılı çift:|Başarısız:/);
  assert.match(en,/CLIP_OUT=/);assert.match(en,/-q:v 1 -pix_fmt yuvj444p/);
  assert.equal(spawnSync('bash',['-n','-c',en]).status,0);
  const messages=[
