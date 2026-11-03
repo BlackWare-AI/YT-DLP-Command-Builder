@@ -152,7 +152,7 @@ const root=path.resolve(__dirname,'..');
   await page.evaluate(()=>{state.history=window.originalHistory;delete window.originalHistory;showHistory();});
 
   // Time controls follow parsed links, and hiding never discards selections.
-  for(const mode of ['av','video','frame','audio','still']) {
+  for(const mode of ['av','video','frame','frame_sclip','audio','still']) {
     await page.click('#modes [data-value='+mode+']');
     for(const text of ['', 'https://example.org/not-instagram']) {
       await page.fill('#links',text);
@@ -161,7 +161,7 @@ const root=path.resolve(__dirname,'..');
     }
     await page.fill('#links','reel/TimeGate');
     assert.equal(await page.locator('#cutSection').isVisible(),['av','video'].includes(mode));
-    assert.equal(await page.locator('#frameSection').isVisible(),mode==='frame');
+    assert.equal(await page.locator('#frameSection').isVisible(),['frame','frame_sclip'].includes(mode));
     await page.locator('#linkList button').click();
     assert.equal(await page.locator('#cutSection').isVisible(),false);
     assert.equal(await page.locator('#frameSection').isVisible(),false);
@@ -183,7 +183,10 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.locator('#checkUpdate').evaluate(el=>getComputedStyle(el).color),'rgb(187, 187, 187)');
   assert.equal(await page.locator('#copy').innerText(),'Copy');
   assert.equal(await page.getAttribute('#copy','aria-pressed'),null);
-  assert.equal(await page.evaluate(()=>document.querySelector('#modes [data-value=frame]').nextElementSibling.id),'copy');
+assert.equal(await page.evaluate(()=>document.querySelector('#modes [data-value=frame]').nextElementSibling.dataset.value),'frame_sclip');
+  assert.equal(await page.locator('#modes button[data-value]').count(),6);
+  assert.equal(await page.evaluate(()=>document.getElementById('copy').parentElement.className),'action-buttons');
+  assert.equal(await page.evaluate(()=>document.getElementById('notesBtn').nextElementSibling.id),'copy');
   const placeholder=await page.getAttribute('#links','placeholder');assert.match(placeholder,/stories\/username\/123\//);assert.doesNotMatch(placeholder,/https?:/);
   assert.match(await page.textContent('#error'),/Enter at least one Instagram/);
   assert.doesNotMatch(await page.locator('body').innerText(),/[çğıöşüÇĞİÖŞÜ]/);
@@ -198,11 +201,11 @@ const root=path.resolve(__dirname,'..');
   await page.fill('#itemOnly','0');
   assert.match(await page.textContent('#error'),/integer of 1 or greater/);
   await page.fill('#itemOnly','');
-  for(const mode of ['av','video','audio','still','frame']) {
+  for(const mode of ['av','video','audio','still','frame','frame_sclip']) {
    await page.click('#modes [data-value='+mode+']');
    assert.doesNotMatch(await page.textContent('#modeHint'),/[çğıöşüÇĞİÖŞÜ]/);
   }
-  assert.match(await page.textContent('#output'),/Successful JPGs:/);
+  assert.match(await page.textContent('#output'),/Successful pairs:/);
   assert.doesNotMatch(await page.textContent('#output'),/Başarılı|başarısız|bulunamadı|çözünürlüğü/);
   await page.click('#frameTimes [data-frame-time=custom]');await page.fill('#frameCustomTime','2');
   assert.match(await page.textContent('#error'),/between 0 and 1 second/);
