@@ -62,7 +62,7 @@ Make yt-dlp easier to use on Android while keeping users in control. The app foc
 9. **Keep notes and backups:** **Link Notes** stores your notes. Open History for copied commands and the daily **Notes Log**, or export TXT/full JSON backups. Each day has one note record; changes that day update it.
 10. **Update the app:** Tap the **Update icon** to check GitHub. If an update is available, the button turns white and an update offer opens. Choose **Install update** to download and verify the APK, then confirm installation in Android. **Later** closes the offer without downloading.
 
-Frame Only keeps one verified JPG per link in the `Frame/` subfolder of your configured main download directory and removes temporary video. The selected engine may be unable to download expired or inaccessible content.
+Frame + SClip downloads the first silent second once per link, saves the clip in `SClip/`, and extracts the selected JPG frame from that same file into `Frame/`. Temporary work files are cleaned up; both outputs share matching filenames. The selected engine may be unable to download expired or inaccessible content.
 
 ## Requirements
 
