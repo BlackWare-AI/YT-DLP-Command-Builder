@@ -241,6 +241,7 @@ assert.equal(await page.evaluate(()=>document.querySelector('#modes [data-value=
    await page.setViewportSize({width,height:844});
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    const labelFits=await page.locator('#modes [data-value=av]').evaluate(el=>{const r=document.createRange();r.selectNodeContents(el.querySelector('strong'));return r.getBoundingClientRect().right<=el.querySelector('.mode-symbol').getBoundingClientRect().left;});
+   const actionRow=await page.evaluate(()=>{const grid=document.getElementById('modes').getBoundingClientRect(),notes=document.getElementById('notesBtn').getBoundingClientRect(),copy=document.getElementById('copy').getBoundingClientRect();return Math.abs(notes.top-copy.top)<1&&Math.abs(notes.width-copy.width)<1&&Math.abs(notes.height-copy.height)<1&&Math.abs(notes.left-grid.left)<1&&Math.abs(copy.right-grid.right)<1&&notes.top>=grid.bottom;});assert.equal(actionRow,true);
    assert.equal(labelFits,true,'English AV label must not overlap its icon at '+width+' px');
    await page.locator('.app-footer-header').screenshot({path:path.join(root,'test-results/fixed-en-footer-'+width+'.png')});
   }
