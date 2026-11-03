@@ -336,7 +336,7 @@ test('English changes only Frame messages and leaves download options and paths 
  assert.match(en,/Successful JPGs: %d/);assert.doesNotMatch(en,/Başarılı JPG:/);
  assert.match(en,/Türkçe/);assert.match(en,/-q:v 1 -pix_fmt yuvj444p/);
  assert.equal(spawnSync('bash',['-n','-c',en]).status,0);
- const messages=[['FFmpeg bulunamadı. Termux: pkg install ffmpeg','FFmpeg not found. Termux: pkg install ffmpeg'],['geçici klasör oluşturulamadı','could not create temporary directory'],['indirme başarısız','download failed'],['video bulunamadı','video not found'],['kaynak çözünürlüğü okunamadı','could not read source dimensions'],['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],['JPG hedef klasöre aktarılamadı','could not publish JPG to output folder'],['Başarılı JPG: %d | Başarısız JPG: %d','Successful JPGs: %d | Failed JPGs: %d']];
+ const messages=[['FFmpeg bulunamadı. Termux: pkg install ffmpeg','FFmpeg not found. Termux: pkg install ffmpeg'],['geçici klasör oluşturulamadı','could not create temporary directory'],['indirme başarısız','download failed'],['video bulunamadı','video not found'],['kaynak çözünürlüğü okunamadı','could not read source dimensions'],['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],['JPG veya SClip hedef klasöre aktarılamadı','could not publish JPG or SClip to output folders'],['Başarılı JPG: %d | Başarısız JPG: %d','Successful JPGs: %d | Failed JPGs: %d']];
  let expected=tr;for(const [a,b] of messages)expected=expected.replace(a,b);
  assert.equal(en,expected);
  for(const mode of ['av','video','audio','still']) {
