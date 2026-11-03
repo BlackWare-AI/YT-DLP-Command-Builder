@@ -68,7 +68,7 @@ function renderButtons() {
     const active=button.dataset.frameTime===state.settings.frameTime;
     button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
   }
-  $('modeHint').textContent={av:'En iyi görüntü + en iyi ses. Uyumlu kapsayıcıyı yt-dlp seçer.',video:'En iyi sessiz video akışı. Ses eklenmez.',audio:'En iyi ses akışı, kaynak biçimi korunarak çıkarılır.',still:'En iyi sessiz video akışından ilk 1 saniye.',frame:'İlk saniyeden tek JPG; geçici video silinir.'}[state.settings.mode];
+  $('modeHint').textContent={av:'En iyi görüntü + en iyi ses. Uyumlu kapsayıcıyı yt-dlp seçer.',video:'En iyi sessiz video akışı. Ses eklenmez.',audio:'En iyi ses akışı, kaynak biçimi korunarak çıkarılır.',still:'En iyi sessiz video akışından ilk 1 saniye.',frame:'İlk saniyeden seçilen JPG + aynı 1 saniyelik video; SClip ve Frame klasörlerine kaydedilir.'}[state.settings.mode];
 }
 function renderCuts() {
   $('cuts').textContent='';
