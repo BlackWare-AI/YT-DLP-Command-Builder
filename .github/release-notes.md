@@ -1,9 +1,7 @@
 Türkçe
-- Tam JSON yedeğini içe aktarma eklendi: ayarlar, işlem geçmişi, Not Günlüğü, Link Notları ve taslaklar geri yüklenir.
-- İçe aktarmada dosya doğrulaması, kullanıcı onayı ve mevcut kayıtları koruyan hata işleme uygulanır.
-- Minify ve kaynak küçültme etkin; yalnızca imzalı Release APK yayınlanır.
+- Frame modu birleştirildi: tek indirmeden eşleşen JPG karesi Frame/ klasörüne, ilk 1 saniyelik sessiz video SClip/ klasörüne kaydedilir.
+- İki çıktı da doğrulanır; eşleşen çift tamamlanamazsa yarım çıktı bırakılmaz. Geçici dosyalar temizlenir.
 
 English
-- Added full JSON backup import for settings, command history, Notes Log, Link Notes and drafts.
-- Added backup validation, confirmation and failure handling.
-- Signed Release APK only, with R8 minification and resource shrinking.
+- Combined Frame and SClip: one download produces a matched JPG in Frame/ and the first silent second in SClip/.
+- Both outputs are staged and verified; incomplete pairs are rolled back and temporary files are cleaned.
