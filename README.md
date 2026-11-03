@@ -25,7 +25,7 @@ Kare + SClip modu her bağlantı için ilk saniyelik sessiz videoyu yalnızca bi
 
 ## APK editions
 
-Both editions are published under **v1.1.7** in this repository: `YT-DLP-Command-Builder-v1.1.7.apk` (TR) and `YT-DLP-Command-Builder-v1.1.7-EN.apk` (EN). They use separate Android application IDs and local storage, so they can be installed together. Existing Turkish installations update in place.
+Both editions are published under **v1.1.9** in this repository: `YT-DLP-Command-Builder-v1.1.9.apk` (TR) and `YT-DLP-Command-Builder-v1.1.9-EN.apk` (EN). They use separate Android application IDs and local storage, so they can be installed together. Existing Turkish installations update in place.
 
 ## Our goal
 
