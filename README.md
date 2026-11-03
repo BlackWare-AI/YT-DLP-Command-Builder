@@ -21,7 +21,7 @@ Add your links, select an engine and download mode, then copy the command into T
 9. **Notlar ve geçmiş:** **Link Notları** kalıcı not alanıdır. Geçmiş düğmesinden kopyalanan komutları ve günlük **Not Günlüğü** kayıtlarını açabilir, Geçmişi aktar ile işlem geçmişini, günlük notlarını ve mevcut Link Notlarını tek TXT dosyasında; ayar aktarımıyla tam JSON yedeğini dışa aktarabilirsin. Her gün tek not kaydı tutulur; o gün yapılan değişiklikler aynı kaydı günceller.
 10. **Uygulamayı güncelle:** **Güncelle simgesi** GitHub sürümünü kontrol eder. Güncelleme varsa düğme beyaz olur ve güncelleme teklifi penceresi açılır. **İndir ve yükle** onayından sonra APK indirilip doğrulanır ve Android yükleme ekranı açılır. **Daha sonra** indirmeden kapatır. Son yüklemeyi Android ekranında onayla.
 
-Yalnızca Kare modu ilk saniyeden bir JPG üretir ve geçici videoyu temizler. Seçilen motor ve cookies yolu kullanılır; JPG'ler ayarlardaki ana indirme klasörünün `Frame/` alt klasörüne gider. Süresi dolmuş veya erişilemeyen içerikler seçilen motor tarafından indirilemeyebilir.
+Kare + SClip modu her bağlantı için ilk saniyelik sessiz videoyu yalnızca bir kez indirir; aynı dosyadan seçilen zamanın JPG karesini çıkarır. Kısa video `SClip/`, JPG ise `Frame/` klasörüne kaydedilir. Geçici dosyalar temizlenir; iki çıktı aynı indirme işleminden ve eşleşen dosya adlarıyla üretilir. Seçilen motor ve cookies yolu kullanılır. Süresi dolmuş veya erişilemeyen içerikler seçilen motor tarafından indirilemeyebilir.
 
 ## APK editions
 
