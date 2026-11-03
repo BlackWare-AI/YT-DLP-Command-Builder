@@ -13,7 +13,7 @@ Add your links, select an engine and download mode, then copy the command into T
 1. **Hazırlık:** Android 10 veya üzeri cihazına APK'yı ve Termux'u kur. Termux'ta çalışır bir yt-dlp kurulumu bulunsun; birleştirme, kesit ve JPG için FFmpeg de kurulu olmalı. Ortak depolama kullanacaksan Termux'a depolama erişimi ver.
 2. **Dil sürümü:** Aynı GitHub Release sayfasındaki normal APK Türkçedir; dosya adı **-EN.apk** ile biten APK İngilizcedir. Uygulama içinde dil düğmesi yoktur. EN ayrı kurulur; Türkçe uygulama ve kayıtları korunur.
 3. **Motor:** Standart yt-dlp için **Normal**, Story fork kurulumu için **Deneysel** seç. Deneysel komut `$HOME/yt-dlp-story-test/bin/yt-dlp` dosyasını kullanır; bu kurulum Termux'ta önceden bulunmalı.
-4. **Biçim:** **Video + Ses**, **Sessiz Video**, **Yalnızca Ses**, ilk saniyelik sessiz **Kısa Kesit** veya aynı ilk saniyelik videodan hem JPG hem SClip çıktısı almak için **Kare + SClip** seç. Tüm bağlantılara aynı seçim uygulanır.
+4. **Biçim:** **Video + Ses**, **Sessiz Video**, **Yalnızca Ses**, ilk saniyelik sessiz **Kısa Kesit**, yalnızca JPG üreten **Yalnızca Kare** veya aynı indirmeden video ve JPG çıkaran **Kare + SClip** seçeneklerinden birini seç. Tüm bağlantılara aynı seçim uygulanır.
 5. **Bağlantılar:** Bir veya daha fazla Instagram Story, Reels veya gönderi bağlantısını alana yapıştır. Pano düğmesi mevcut listeye ekler; yinelenen bağlantılar atlanır. Tek bağlantı eklemek için alttaki alanı ve **+ Ekle** düğmesini kullan.
 6. **İsteğe bağlı seçim:** Hesap listesi veya çoklu gönderi için sıra alanlarını kullan; 1 ilk öğedir. Kesit istiyorsan başlangıç/bitiş saniyelerini gir. Kare modunda varsayılan **0,5 saniye** veya ilk saniye içindeki özel zamanı seç.
 7. **Yollar:** **Gelişmiş ayarlar** içindeki indirme klasörü ve cookies.txt yolunu kendi Termux kurulumuna göre düzenle. Cookies içeriği uygulamaya alınmaz. Boş cookies yolu komuta eklenmez.
@@ -21,11 +21,11 @@ Add your links, select an engine and download mode, then copy the command into T
 9. **Notlar ve geçmiş:** **Link Notları** kalıcı not alanıdır. Geçmiş düğmesinden kopyalanan komutları ve günlük **Not Günlüğü** kayıtlarını açabilir, Geçmişi aktar ile işlem geçmişini, günlük notlarını ve mevcut Link Notlarını tek TXT dosyasında; ayar aktarımıyla tam JSON yedeğini dışa aktarabilirsin. Her gün tek not kaydı tutulur; o gün yapılan değişiklikler aynı kaydı günceller.
 10. **Uygulamayı güncelle:** **Güncelle simgesi** GitHub sürümünü kontrol eder. Güncelleme varsa düğme beyaz olur ve güncelleme teklifi penceresi açılır. **İndir ve yükle** onayından sonra APK indirilip doğrulanır ve Android yükleme ekranı açılır. **Daha sonra** indirmeden kapatır. Son yüklemeyi Android ekranında onayla.
 
-Kare + SClip modu her bağlantı için ilk saniyelik sessiz videoyu yalnızca bir kez indirir; aynı dosyadan seçilen zamanın JPG karesini çıkarır. Kısa video `SClip/`, JPG ise `Frame/` klasörüne kaydedilir. Geçici dosyalar temizlenir; iki çıktı aynı indirme işleminden ve eşleşen dosya adlarıyla üretilir. Seçilen motor ve cookies yolu kullanılır. Süresi dolmuş veya erişilemeyen içerikler seçilen motor tarafından indirilemeyebilir.
+**Yalnızca Kare** modu ilk saniyeden seçilen zamanda tek JPG üretir; geçici video silinir ve JPG `Frame/` klasörüne kaydedilir. **Kare + SClip** modu ise ilk saniyelik sessiz videoyu bir kez indirir, seçilen JPG karesini aynı dosyadan çıkarır; video `SClip/`, JPG `Frame/` klasörüne eşleşen adlarla kaydedilir. Her iki mod da seçilen motoru ve cookies yolunu kullanır. Süresi dolmuş veya erişilemeyen içerikler indirilemeyebilir.
 
 ## APK editions
 
-Both editions are published under **v1.1.9** in this repository: `YT-DLP-Command-Builder-v1.1.9.apk` (TR) and `YT-DLP-Command-Builder-v1.1.9-EN.apk` (EN). They use separate Android application IDs and local storage, so they can be installed together. Existing Turkish installations update in place.
+Both editions are published under **v1.1.10** in this repository: `YT-DLP-Command-Builder-v1.1.10.apk` (TR) and `YT-DLP-Command-Builder-v1.1.10-EN.apk` (EN). They use separate Android application IDs and local storage, so they can be installed together. Existing Turkish installations update in place.
 
 ## Our goal
 
@@ -34,7 +34,7 @@ Make yt-dlp easier to use on Android while keeping users in control. The app foc
 ## Features
 
 - **Two engines:** choose standard `yt-dlp` or a custom experimental yt-dlp installation.
-- **Download modes:** video with audio, video without audio, audio only, a standalone one-second **Kısa Kesit** (`StillClip`), and **Kare + SClip** (`Frame`) which saves the one-second silent clip and a high-quality JPG frame extracted from that same download.
+- **Download modes:** video with audio, silent video, audio only, standalone one-second **Kısa Kesit** (`StillClip`), **Yalnızca Kare** (`Frame`) for one JPG, and **Kare + SClip** (`Frame + SClip`) for a matched one-second silent clip and JPG from the same download.
 - **Multiple Instagram links:** accept Stories, `/reel/`, `/p/`, and `/tv/` links on `instagram.com` or `www.instagram.com`. Clean share parameters, split glued links, and remove duplicates without querying the media. Other domains, credentials and spoofed domains are rejected; Story IDs have no length restriction.
 - **Paste from clipboard:** tap the small clipboard button inside the link field to append Instagram links without replacing the current draft. Repeated links are skipped. The clipboard is read only when you tap the button.
 - **Optional item positions:** for Story account lists, profile lists and post carousels, leave the three fields blank or enter an exact ordinal, an exclusive after/before boundary, or both boundaries. The panel sits between links and video cuts and works in every mode. For example, after 3 and before 7 selects items 4–6 via `--playlist-items "4:6"`. Indices are 1-based in the order returned by yt-dlp, not media IDs or guaranteed chronological order. The same selection applies to collection links in the batch; direct Story links retain `--no-playlist`. Profile-post enumeration depends on the selected motor and is currently marked non-working in upstream yt-dlp; Story account URLs use `/stories/username/`.
@@ -54,15 +54,15 @@ Make yt-dlp easier to use on Android while keeping users in control. The app foc
 1. **Prepare Termux:** Install the APK on Android 10 or later, install Termux, and set up working yt-dlp and FFmpeg executables. Allow Termux access to shared storage if using a shared download folder.
 2. **Choose an edition:** The regular APK on the same GitHub Release page is Turkish; the **-EN.apk** asset is English. There is no in-app language switch. EN installs separately without replacing the Turkish app or its data.
 3. **Choose an engine:** **Standard** uses `yt-dlp`. **Experimental** uses the separately installed Story fork at `$HOME/yt-dlp-story-test/bin/yt-dlp`.
-4. **Choose a mode:** **Video & Audio**, **Silent Video**, **Audio Only**, **Short Clip** (the first silent second), or **Frame + SClip** (the one-second clip and a JPG extracted from that same download). All links in the batch share these settings.
+4. **Choose a mode:** **Video & Audio**, **Silent Video**, **Audio Only**, **Short Clip**, **Frame Only** (one JPG), or **Frame + SClip** (the first silent second and a JPG extracted from that same download). All links in the batch share these settings.
 5. **Add Instagram links:** Paste one or more Story, Reels or post links. The clipboard button appends supported links and skips duplicates. Use the smaller field and **+ Add** for another link.
-6. **Adjust optional selections:** Use item positions for account lists or post carousels (1 means the first item). Add video start/end segments if needed. Frame Only offers **0.5 seconds** or a custom time within the first second.
+6. **Adjust optional selections:** Use item positions for account lists or post carousels (1 means the first item). Add video start/end segments if needed. Frame Only offers **0.5 seconds** or a custom time within the first second; Frame + SClip uses that same selected time for its JPG.
 7. **Check paths:** Open **Advanced settings** and enter your Termux download folder and cookies.txt path. The app stores the path only. Leave cookies blank to omit the option.
 8. **Run the command:** Tap **Copy**, open Termux, paste and execute it. Successful copying saves a history record and clears link, segment and position fields. Download results are handled in Termux.
 9. **Keep notes and backups:** **Link Notes** stores your notes. Open History for copied commands and the daily **Notes Log**, or export TXT/full JSON backups. Each day has one note record; changes that day update it.
 10. **Update the app:** Tap the **Update icon** to check GitHub. If an update is available, the button turns white and an update offer opens. Choose **Install update** to download and verify the APK, then confirm installation in Android. **Later** closes the offer without downloading.
 
-Frame + SClip downloads the first silent second once per link, saves the clip in `SClip/`, and extracts the selected JPG frame from that same file into `Frame/`. Temporary work files are cleaned up; both outputs share matching filenames. The selected engine may be unable to download expired or inaccessible content.
+Frame Only saves one verified JPG in `Frame/` and removes its temporary video. Frame + SClip downloads the first silent second once per link, saves that clip in `SClip/`, and extracts the selected JPG frame from the same file into `Frame/`. Both outputs share matching filenames. The selected engine may be unable to download expired or inaccessible content.
 
 ## Requirements
 
@@ -108,7 +108,7 @@ The repository contains the Android project, shared web interface, tests, and Gi
 - Debug build: `.github/workflows/android.yml`
 - Release workflow: `.github/workflows/release.yml`
 - Package: `com.blackware.ytdlpcommandbuilder`
-- Current documented version: `1.1.7`
+- Current documented version: `1.1.10`
 
 To build locally, use JDK 17, Android SDK 35, and the project's Gradle configuration:
 
