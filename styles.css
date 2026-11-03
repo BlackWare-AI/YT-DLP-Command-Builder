@@ -105,3 +105,9 @@ main>section{padding-inline:0;border-inline-width:0}
 /* Keep the copy glyph centered while rendering its artwork at the approved 30 px size. */
 #copy .mode-symbol{width:40px;height:40px}
 #copy .copy-icon{width:30px;height:30px}
+
+/* The six download modes occupy three rows; notes and copy form a matching two-button action row. */
+.action-buttons button{height:64px;min-height:64px;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px}
+.action-buttons .primary{justify-content:center}
+.action-buttons #copy .mode-symbol{position:static;transform:none;width:26px;height:26px;margin:0}
+.action-buttons #copy .copy-icon{width:24px;height:24px}
