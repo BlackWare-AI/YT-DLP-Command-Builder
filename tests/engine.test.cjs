@@ -344,6 +344,25 @@ test('English changes only Frame messages and leaves download options and paths 
  }
 });
 
+test('English Frame + SClip translates paired-output messages and keeps the same command structure',()=>{
+ const original=input({mode:'frame_sclip',cookies:'$HOME/Türkçe/cookies.txt'});
+ const tr=B.build(original).command,en=B.build({...original,language:'en'}).command;
+ assert.match(en,/Successful pairs: %d \\| Failed: %d/);assert.doesNotMatch(en,/Başarılı çift:|Başarısız:/);
+ assert.match(en,/CLIP_OUT=/);assert.match(en,/-q:v 1 -pix_fmt yuvj444p/);
+ assert.equal(spawnSync('bash',['-n','-c',en]).status,0);
+ const messages=[
+  ['FFmpeg bulunamadı. Termux: pkg install ffmpeg','FFmpeg not found. Termux: pkg install ffmpeg'],
+  ['geçici klasör oluşturulamadı','could not create temporary directory'],
+  ['indirme başarısız','download failed'],
+  ['video bulunamadı','video not found'],
+  ['kaynak çözünürlüğü okunamadı','could not read source dimensions'],
+  ['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],
+  ['JPG veya SClip hedef klasöre aktarılamadı','could not publish JPG or SClip to output folders'],
+  ['Başarılı çift: %d | Başarısız: %d','Successful pairs: %d | Failed: %d']
+ ];
+ let expected=tr;for(const [a,b] of messages)expected=expected.replace(a,b);
+ assert.equal(en,expected);
+});
 test('daily notes accumulate unique cleaned links, retain deletions and update annotations',()=>{
  const first=B.mergeDailyNotes('', 'https://instagram.com/stories/user.a/1?utm_source=x V\nreel/Ab_c S');
  assert.equal(first,'stories/user.a/1 V\nreel/Ab_c S');
