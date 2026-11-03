@@ -10,8 +10,8 @@ android {
         resValue("string", "app_name", if (englishEdition) "YT-DLP Command Builder EN" else "YT-DLP Command Builder")
         minSdk = 29
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.1.8"
+        versionCode = 20
+        versionName = "1.1.9"
         testInstrumentationRunner = "android.test.InstrumentationTestRunner"
     }
     signingConfigs {

@@ -68,7 +68,7 @@ function renderButtons() {
     const active=button.dataset.frameTime===state.settings.frameTime;
     button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
   }
-  $('modeHint').textContent={av:'En iyi görüntü + en iyi ses. Uyumlu kapsayıcıyı yt-dlp seçer.',video:'En iyi sessiz video akışı. Ses eklenmez.',audio:'En iyi ses akışı, kaynak biçimi korunarak çıkarılır.',still:'En iyi sessiz video akışından ilk 1 saniye.',frame:'İlk saniyeden tek JPG; geçici video silinir.'}[state.settings.mode];
+  $('modeHint').textContent={av:'En iyi görüntü + en iyi ses. Uyumlu kapsayıcıyı yt-dlp seçer.',video:'En iyi sessiz video akışı. Ses eklenmez.',audio:'En iyi ses akışı, kaynak biçimi korunarak çıkarılır.',still:'En iyi sessiz video akışından ilk 1 saniye.',frame:'İlk saniyeden seçilen JPG + aynı 1 saniyelik video; SClip ve Frame klasörlerine kaydedilir.'}[state.settings.mode];
 }
 function renderCuts() {
   $('cuts').textContent='';
@@ -413,7 +413,7 @@ async function importBackupText(raw) {
 window.receiveBackupImport=importBackupText;
 $('importSettings').onclick=()=>{if(native && typeof native.importBackup==='function') native.importBackup();else $('importFile').click();};
 $('importFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>20*1024*1024)throw Error('Dosya 20 MB sınırını aşıyor.');await importBackupText(await file.text());}catch(err){alert(err.message);}};
-$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.8',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
+$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.9',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
 $('export').onclick=()=>exportText(allHistoryText(),'yt-dlp-history.txt');
 function saveNotes() {
   state.notes=$('notes').value;

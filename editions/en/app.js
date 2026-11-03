@@ -16,8 +16,8 @@ const english={
   "En iyi kaynak sesi": "Best source audio",
   "Kısa Kesit": "Short Clip",
   "İlk saniye · sessiz": "First second · silent",
-  "Yalnızca Kare": "Frame Only",
-  "Tek JPG kare": "One JPG frame",
+  "Yalnızca Kare": "Frame + SClip",
+  "Tek JPG kare": "1 sec clip + JPG",
   "Link Notları": "Link Notes",
   "Komutu kopyala": "Copy command",
   "Çoklu bağlantı": "Multiple links",
@@ -50,7 +50,8 @@ const english={
   "Özel zaman": "Custom time",
   "Özel kare zamanı, saniye": "Custom frame time, seconds",
   "Saniye cinsinden zaman": "Time in seconds",
-  "Tek JPG · geçici video otomatik silinir. FFmpeg gerekir.": "One JPG · temporary video is deleted automatically. Requires FFmpeg.",
+  "JPG + 1 sn video · FFmpeg gerekir.": "JPG + 1 sec clip · Requires FFmpeg.",
+  "İlk saniyeden seçilen JPG + aynı 1 saniyelik video; SClip ve Frame klasörlerine kaydedilir.": "A selected JPG frame from the first second + that same one-second clip, saved to the Frame and SClip folders.",
   "Komut": "Command",
   "Komutu göster": "Show command",
   "Gelişmiş ayarlar": "Advanced settings",
@@ -298,7 +299,7 @@ function renderButtons() {
     const active=button.dataset.frameTime===state.settings.frameTime;
     button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
   }
-  $('modeHint').textContent={av:t('En iyi görüntü + en iyi ses. Uyumlu kapsayıcıyı yt-dlp seçer.'),video:t('En iyi sessiz video akışı. Ses eklenmez.'),audio:t('En iyi ses akışı, kaynak biçimi korunarak çıkarılır.'),still:t('En iyi sessiz video akışından ilk 1 saniye.'),frame:t('İlk saniyeden tek JPG; geçici video silinir.')}[state.settings.mode];
+  $('modeHint').textContent={av:t('En iyi görüntü + en iyi ses. Uyumlu kapsayıcıyı yt-dlp seçer.'),video:t('En iyi sessiz video akışı. Ses eklenmez.'),audio:t('En iyi ses akışı, kaynak biçimi korunarak çıkarılır.'),still:t('En iyi sessiz video akışından ilk 1 saniye.'),frame:t('İlk saniyeden seçilen JPG + aynı 1 saniyelik video; SClip ve Frame klasörlerine kaydedilir.')}[state.settings.mode];
 }
 function renderCuts() {
   $('cuts').textContent='';
@@ -643,7 +644,7 @@ async function importBackupText(raw) {
 window.receiveBackupImport=importBackupText;
 $('importSettings').onclick=()=>{if(native && typeof native.importBackup==='function') native.importBackup();else $('importFile').click();};
 $('importFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>20*1024*1024)throw Error('File exceeds 20 MB.');await importBackupText(await file.text());}catch(err){alert(err.message);}};
-$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.8',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
+$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.9',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
 $('export').onclick=()=>exportText(allHistoryText(),'yt-dlp-history.txt');
 function saveNotes() {
   state.notes=$('notes').value;
