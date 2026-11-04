@@ -1,9 +1,13 @@
 Türkçe
-- Yalnızca Kare ve Kısa Kesit seçenekleri korunarak altıncı indirme modu Kesit + Kare eklendi.
-- Kesit + Kare, ilk 1 saniyelik sessiz videoyu bir kez indirir; seçilen JPG karesini aynı dosyadan çıkarır. Video SClip/, JPG Frame/ klasörüne aynı ad/sıra ile kaydedilir.
-- Link Notları ve Kopyala, altı modun altına eşit boyda yan yana taşındı.
+- Kesit + Kare simgesi 1 px küçültüldü; mod kartı açıklaması **Kısa kesit ve kare** olarak kısaltıldı.
+- Yalnızca Kesit + Kare modunun bilgi satırı tek satıra sığacak şekilde kısaltıldı.
+- Kopyala düğmesindeki simge 20 px'e indirildi ve metinle birlikte yatay/dikey ortalandı. Düğme ölçüleri ve beyaz dolu görünümü korundu.
+- Kesit + Kare komutu için gerçek yt-dlp + FFmpeg entegrasyon doğrulaması eklendi. İlk saniyelik sessiz MP4, eşleşen JPG ve geçici dosya temizliği test ediliyor.
+- Android sürümü 1.2.0 / versionCode 22.
 
 English
-- Added Frame + SClip as a sixth mode while keeping Frame Only and Short Clip separate.
-- One first-second silent clip download produces both the SClip video and the selected JPG frame from the same file, with matching names in SClip/ and Frame/.
-- Moved Link Notes and Copy into equal-sized side-by-side buttons below the six modes.
+- Reduced the Frame + SClip mode icon by 1 px and shortened its card subtitle to **Short clip and frame**.
+- Shortened only the Frame + SClip mode hint so it fits on one line.
+- Reduced the Copy icon to 20 px and centered it with the label. Button dimensions and filled appearance are preserved.
+- Added a real yt-dlp + FFmpeg integration check for Frame + SClip, including the first-second silent MP4, matching JPG and temporary-file cleanup.
+- Updated Android version to 1.2.0 / versionCode 22.
