@@ -230,7 +230,7 @@ function showHistory() {
     const item=document.createElement('details'); item.className='history-item';
     const summary=document.createElement('summary');
     summary.textContent=d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})+' | '+(Array.isArray(h.urls) ? h.urls.length : h.count)+' bağlantı | '+
-      ({av:'Video + Ses',video:h.snapshot && h.snapshot.schema===2 ? 'Sessiz Video' : 'Video + Ses',audio:'Ses',still:'Kısa Kesit',frame:'Yalnızca Kare',frame_sclip:'Kesit + Kare'}[h.mode] || h.mode)+' | '+(h.engine==='normal'?'Normal':'Deneysel');
+      ({av:'Video + Ses',video:h.snapshot && [2,3].includes(h.snapshot.schema) ? 'Sessiz Video' : 'Video + Ses',audio:'Ses',still:'Kısa Kesit',frame:'Yalnızca Kare',frame_sclip:'Kesit + Kare'}[h.mode] || h.mode)+' | '+(h.engine==='normal'?'Normal':'Deneysel');
     item.append(summary);
     let loaded=false;
     item.addEventListener('toggle',()=>{
@@ -239,7 +239,7 @@ function showHistory() {
     const actions=document.createElement('div'); actions.className='group history-item-actions';
     actions.append(button('Tekrar düzenle','edit',()=>{
         if (!h.snapshot) { alert('Eski prototip kaydında düzenleme bilgisi bulunmuyor. Komutu kopyalayabilirsiniz.'); return; }
-        state.settings=Builder.normalizeSettings(h.snapshot.settings,h.snapshot.schema); state.schema=2; state.links=h.snapshot.links;
+        state.settings=Builder.normalizeSettings(h.snapshot.settings,h.snapshot.schema); state.schema=3; state.links=h.snapshot.links;
         state.cuts=JSON.parse(JSON.stringify(h.snapshot.cuts)); state.selection={only:'',after:'',before:'',...h.snapshot.selection}; save(); hydrate(); closeHistory(); window.scrollTo(0,0);
       }),
       button('Kopyala','copy',()=>{
