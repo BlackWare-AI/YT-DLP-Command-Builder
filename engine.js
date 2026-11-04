@@ -11,7 +11,8 @@
     requests:'2', min:'6', max:'16', thumb:true, overwrite:true});
   function normalizeSettings(settings, schema) {
     const result = {...defaults, ...settings};
-    if (schema !== 2 && result.mode === 'video') result.mode = 'av';
+    if (schema !== 2 && schema !== 3 && result.mode === 'video') result.mode = 'av';
+    if (schema === 2 && result.mode === 'frame') result.mode = 'frame_sclip';
     delete result.audioFormat;
     delete result.frameOutput;
     if (!['0.5','custom'].includes(result.frameTime)) result.frameTime='0.5';
