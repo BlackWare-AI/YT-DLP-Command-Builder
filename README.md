@@ -25,7 +25,7 @@ Add your links, select an engine and download mode, then copy the command into T
 
 ## APK editions
 
-Both editions are published under **v1.1.10** in this repository: `YT-DLP-Command-Builder-v1.1.10.apk` (TR) and `YT-DLP-Command-Builder-v1.1.10-EN.apk` (EN). They use separate Android application IDs and local storage, so they can be installed together. Existing Turkish installations update in place.
+Both editions are published under **v1.2.0** in this repository: `YT-DLP-Command-Builder-v1.2.0.apk` (TR) and `YT-DLP-Command-Builder-v1.2.0-EN.apk` (EN). They use separate Android application IDs and local storage, so they can be installed together. Existing Turkish installations update in place.
 
 ## Our goal
 
@@ -34,7 +34,7 @@ Make yt-dlp easier to use on Android while keeping users in control. The app foc
 ## Features
 
 - **Two engines:** choose standard `yt-dlp` or a custom experimental yt-dlp installation.
-- **Download modes:** video with audio, silent video, audio only, standalone one-second **Kısa Kesit** (`StillClip`), **Yalnızca Kare** (`Frame`) for one JPG, and **Kare + SClip** (`Frame + SClip`) for a matched one-second silent clip and JPG from the same download.
+- **Download modes:** video with audio, silent video, audio only, standalone one-second **Kısa Kesit** (`StillClip`), **Yalnızca Kare** (`Frame`) for one JPG, and **Kesit + Kare** (`Frame + SClip`) for a matched one-second silent clip and JPG from the same download.
 - **Multiple Instagram links:** accept Stories, `/reel/`, `/p/`, and `/tv/` links on `instagram.com` or `www.instagram.com`. Clean share parameters, split glued links, and remove duplicates without querying the media. Other domains, credentials and spoofed domains are rejected; Story IDs have no length restriction.
 - **Paste from clipboard:** tap the small clipboard button inside the link field to append Instagram links without replacing the current draft. Repeated links are skipped. The clipboard is read only when you tap the button.
 - **Optional item positions:** for Story account lists, profile lists and post carousels, leave the three fields blank or enter an exact ordinal, an exclusive after/before boundary, or both boundaries. The panel sits between links and video cuts and works in every mode. For example, after 3 and before 7 selects items 4–6 via `--playlist-items "4:6"`. Indices are 1-based in the order returned by yt-dlp, not media IDs or guaranteed chronological order. The same selection applies to collection links in the batch; direct Story links retain `--no-playlist`. Profile-post enumeration depends on the selected motor and is currently marked non-working in upstream yt-dlp; Story account URLs use `/stories/username/`.
@@ -103,12 +103,12 @@ Settings, drafts, unfinished add-link input, notes, selections, command history 
 
 ## Building from source
 
-The repository contains the Android project, shared web interface, tests, and GitHub Actions workflows.
+The repository contains the Android project, shared web interface, tests, and GitHub Actions workflows. The real-media integration suite checks Frame + SClip with yt-dlp and FFmpeg against a local HTTP fixture without contacting Instagram.
 
 - Debug build: `.github/workflows/android.yml`
 - Release workflow: `.github/workflows/release.yml`
 - Package: `com.blackware.ytdlpcommandbuilder`
-- Current documented version: `1.1.10`
+- Current documented version: `1.2.0`
 
 To build locally, use JDK 17, Android SDK 35, and the project's Gradle configuration:
 

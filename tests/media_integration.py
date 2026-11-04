@@ -197,6 +197,44 @@ def main():
             assert not list(frame_prefix.glob('tmp/ytdlp-frame.*'))
             print('PASS: Frame uses selected normal/experimental executable, cookies and configured output folder')
 
+            # Exercise Frame + SClip with real yt-dlp and FFmpeg. The local HTTP
+            # fixture enforces the configured cookie and serves a six-second,
+            # silent H.264 MP4 with keyframes at one-second intervals.
+            paired_data={**frame_data,'settings':{**frame_data['settings'],'mode':'frame_sclip'}}
+            sclip_output=output/'SClip'
+            for engine in ['experimental','normal']:
+                paired_data['settings']['engine']=engine
+                before_frames={p.name for p in frame_output.glob('*.jpg')}
+                before_clips={p.name for p in sclip_output.glob('*.mp4')} if sclip_output.exists() else set()
+                paired_cmd=run(['node','-e',frame_script,json.dumps(paired_data)],cwd=ROOT,text=True).stdout
+                assert '--download-sections "*0-1"' in paired_cmd and '-f "bv"' in paired_cmd
+                paired_result=run(['bash','-c',paired_cmd],env={**env,'HOME':str(frame_home),'PREFIX':str(frame_prefix),'PYTHONPATH':pythonpath,'FIXTURE_FRAME':'1','TMPDIR':str(frame_home/'missing'/'tmp')},text=True)
+                assert 'Başarılı çift: 1 | Başarısız: 0' in paired_result.stdout,paired_result.stdout
+                new_frames=[p for p in frame_output.glob('*.jpg') if p.name not in before_frames]
+                new_clips=[p for p in sclip_output.glob('*.mp4') if p.name not in before_clips]
+                assert len(new_frames)==len(new_clips)==1,paired_result.stdout
+                jpg,clip=new_frames[0],new_clips[0]
+                assert jpg.stem==clip.stem
+                clip_meta=probe(clip)
+                assert 0.85 <= float(clip_meta['format']['duration']) <= 1.15,clip_meta['format']
+                streams=clip_meta['streams']
+                assert [stream['codec_type'] for stream in streams]==['video'],streams
+                assert (streams[0]['width'],streams[0]['height'])==(160,120),streams[0]
+
+                # Independently find the frame nearest 0.5 seconds in the retained
+                # clip and verify the published JPG is byte-identical.
+                frame_probe=json.loads(run(['ffprobe','-v','error','-select_streams','v:0','-show_frames','-show_entries','frame=best_effort_timestamp_time','-of','json',str(clip)],text=True).stdout)
+                timestamps=[float(item['best_effort_timestamp_time']) for item in frame_probe['frames']]
+                assert timestamps
+                origin=timestamps[0]
+                nearest=min(range(len(timestamps)),key=lambda index:abs(timestamps[index]-origin-0.5))
+                expected_jpg=folder/f'expected-{engine}.jpg'
+                run(['ffmpeg','-hide_banner','-loglevel','error','-nostdin','-y','-i',str(clip),'-map','0:v:0','-vf',f'select=eq(n\\,{nearest})','-frames:v','1','-q:v','1','-pix_fmt','yuvj444p',str(expected_jpg)])
+                assert jpg.read_bytes()==expected_jpg.read_bytes(),'JPG must be the nearest 0.5 s frame from the retained SClip'
+                assert not list(frame_prefix.glob('tmp/ytdlp-frame.*'))
+                assert not (frame_home/'missing').exists()
+                print(f'PASS: Frame + SClip actual yt-dlp section download, silent ~1 s MP4, matching JPG and cleanup ({engine})')
+
         except subprocess.CalledProcessError as e:
             print(e.stdout); raise
         finally: server.shutdown()

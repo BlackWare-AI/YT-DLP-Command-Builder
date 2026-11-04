@@ -60,6 +60,16 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/engine.test.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real media integration tools
+        run: |
+          python -m pip install yt-dlp==2026.10.21
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+      - name: Verify generated media commands with real yt-dlp and FFmpeg
+        run: python tests/media_integration.py
       - name: Build minified release
         run: |
           gradle :app:assembleRelease --no-daemon
