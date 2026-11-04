@@ -10,6 +10,24 @@ function validState(v) {
     (v.notesDailyHistory===undefined || Array.isArray(v.notesDailyHistory)) &&
     (v.notes===undefined || typeof v.notes==='string') && (v.newLink===undefined || typeof v.newLink==='string');
 }
+function migrateStateSchema(value) {
+  const sourceSchema=value.schema;
+  value.settings=Builder.normalizeSettings(value.settings,sourceSchema);
+  if(Array.isArray(value.history)) for(const record of value.history) {
+    if(!record || typeof record!=='object') continue;
+    const snapshot=record.snapshot;
+    const snapshotSchema=snapshot && snapshot.schema!==undefined ? snapshot.schema : sourceSchema;
+    if(snapshot && snapshot.settings && typeof snapshot.settings==='object') {
+      snapshot.settings=Builder.normalizeSettings(snapshot.settings,snapshotSchema);
+      if(snapshotSchema===2 && record.mode==='frame') record.mode='frame_sclip';
+      snapshot.schema=3;
+    } else if(sourceSchema===2 && record.mode==='frame') {
+      record.mode='frame_sclip';
+    }
+  }
+  value.schema=3;
+  return value;
+}
 function readState() {
   try {
     const raw=native ? [native.getState()] : [localStorage.getItem('builder.state'),localStorage.getItem('builder.state.backup')];
@@ -29,8 +47,7 @@ function readState() {
   }
 }
 state=readState();
-state.settings=Builder.normalizeSettings(state.settings,state.schema);
-state.schema=2;
+migrateStateSchema(state);
 state.selection={only:'',after:'',before:'',...state.selection};
 state.notes=state.notes===undefined ? '' : state.notes;
 state.newLink=state.newLink===undefined ? '' : state.newLink;
@@ -158,7 +175,7 @@ function exportText(text,filename) {
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function historyText(records) {
-  return records.map(h=>new Date(h.date).toLocaleString('tr-TR')+' | '+(Array.isArray(h.urls) ? h.urls.length : h.count)+' bağlantı | '+({frame:'Yalnızca Kare',frame_sclip:'Kare + SClip',still:'Kısa Kesit'}[h.mode] || h.mode)+' | '+h.engine+
+  return records.map(h=>new Date(h.date).toLocaleString('tr-TR')+' | '+(Array.isArray(h.urls) ? h.urls.length : h.count)+' bağlantı | '+({frame:'Yalnızca Kare',frame_sclip:'Kesit + Kare',still:'Kısa Kesit'}[h.mode] || h.mode)+' | '+h.engine+
     '\nYalnızca komut oluşturuldu ve kopyalandı.\n'+(h.urls || []).join('\n')+'\n'+
     (h.snapshot ? JSON.stringify(h.snapshot.settings,null,2)+'\nÖğe seçimi: '+JSON.stringify(h.snapshot.selection || {})+'\nKesitler: '+JSON.stringify(h.snapshot.cuts)+'\n' : '')+h.command).join('\n\n');
 }
@@ -213,7 +230,7 @@ function showHistory() {
     const item=document.createElement('details'); item.className='history-item';
     const summary=document.createElement('summary');
     summary.textContent=d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})+' | '+(Array.isArray(h.urls) ? h.urls.length : h.count)+' bağlantı | '+
-      ({av:'Video + Ses',video:h.snapshot && h.snapshot.schema===2 ? 'Sessiz Video' : 'Video + Ses',audio:'Ses',still:'Kısa Kesit',frame:'Yalnızca Kare',frame_sclip:'Kare + SClip'}[h.mode] || h.mode)+' | '+(h.engine==='normal'?'Normal':'Deneysel');
+      ({av:'Video + Ses',video:h.snapshot && h.snapshot.schema===2 ? 'Sessiz Video' : 'Video + Ses',audio:'Ses',still:'Kısa Kesit',frame:'Yalnızca Kare',frame_sclip:'Kesit + Kare'}[h.mode] || h.mode)+' | '+(h.engine==='normal'?'Normal':'Deneysel');
     item.append(summary);
     let loaded=false;
     item.addEventListener('toggle',()=>{
@@ -319,7 +336,7 @@ $('addCut').onclick=()=>{state.cuts.push({start:'0',end:'1'}); renderCuts(); sav
 $('copy').onclick=async()=>{
   if(copying) return;
   const result=preview(); if (!result) return;
-  const snapshot=JSON.parse(JSON.stringify({schema:2,settings:state.settings,links:state.links,cuts:state.cuts,selection:state.selection}));
+  const snapshot=JSON.parse(JSON.stringify({schema:3,settings:state.settings,links:state.links,cuts:state.cuts,selection:state.selection}));
   copying=true; $('copy').disabled=true;
   try {
     // Require a saved draft before attempting any destructive post-copy change.
@@ -400,8 +417,7 @@ async function importBackupText(raw) {
     const previous=state, prevHistory=savedHistory, prevDaily=savedDailyHistory;
     try {
       state=imported;
-      state.settings=Builder.normalizeSettings(state.settings,state.schema);
-      state.schema=2;
+      migrateStateSchema(state);
       state.selection={only:'',after:'',before:'',...state.selection};
       savedHistory=null;savedDailyHistory=null;
       persist();
