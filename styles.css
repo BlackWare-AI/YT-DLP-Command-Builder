@@ -114,3 +114,9 @@ main>section{padding-inline:0;border-inline-width:0}
 .action-buttons{align-items:stretch}
 .action-buttons>#notesBtn,.action-buttons>#copy{box-sizing:border-box;width:100%;height:64px;min-height:64px}
 #notesBtn{border:1px solid #555}
+
+#modeHint[data-mode="frame_sclip"]{white-space:nowrap}
+@media(max-width:350px){#modeHint[data-mode="frame_sclip"]{font-size:10px}}
+.action-buttons #copy.copy-mode{justify-content:center;gap:9px}
+.action-buttons #copy .mode-symbol{width:24px;height:24px;flex:0 0 24px}
+.action-buttons #copy .copy-icon{width:20px;height:20px}
