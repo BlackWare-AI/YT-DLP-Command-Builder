@@ -43,6 +43,9 @@ test('legacy settings migrate without changing saved meaning',()=>{
  const s=B.normalizeSettings({mode:'video',audioFormat:'mp3',min:'4',folder:'/my/path'},undefined);
  assert.equal(s.mode,'av');assert.equal(s.audioFormat,undefined);assert.equal(s.min,'4');assert.equal(s.folder,'/my/path');
  assert.equal(B.normalizeSettings({mode:'video'},2).mode,'video');
+ assert.equal(B.normalizeSettings({mode:'frame'},2).mode,'frame_sclip');
+ assert.equal(B.normalizeSettings({mode:'frame'},3).mode,'frame');
+ assert.equal(B.normalizeSettings({mode:'video'},3).mode,'video');
 });
 test('StillClip is video only first second; ignores editor',()=>{
  const c=B.build(input({mode:'still'},[{start:'bad',end:'bad'}])).command;
