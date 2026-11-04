@@ -1,6 +1,6 @@
 Türkçe
-- Yalnızca Kare ve Kısa Kesit seçenekleri korunarak altıncı indirme modu Kare + SClip eklendi.
-- Kare + SClip, ilk 1 saniyelik sessiz videoyu bir kez indirir; seçilen JPG karesini aynı dosyadan çıkarır. Video SClip/, JPG Frame/ klasörüne aynı ad/sıra ile kaydedilir.
+- Yalnızca Kare ve Kısa Kesit seçenekleri korunarak altıncı indirme modu Kesit + Kare eklendi.
+- Kesit + Kare, ilk 1 saniyelik sessiz videoyu bir kez indirir; seçilen JPG karesini aynı dosyadan çıkarır. Video SClip/, JPG Frame/ klasörüne aynı ad/sıra ile kaydedilir.
 - Link Notları ve Kopyala, altı modun altına eşit boyda yan yana taşındı.
 
 English
