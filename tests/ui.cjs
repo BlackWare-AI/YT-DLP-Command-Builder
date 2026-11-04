@@ -243,6 +243,16 @@ const root=path.resolve(__dirname,'..');
 
   assert.equal(await page.evaluate(()=>document.querySelector('#modes [data-value=frame]').nextElementSibling.dataset.value),'frame_sclip');
   assert.equal(await page.locator('#modes button[data-value]').count(),6);
+  assert.equal(await page.locator('#modes [data-value=frame_sclip] strong').textContent(),'Kesit + Kare');
+  assert.equal(await page.locator('#notesBtn').innerText(),'Link Notları');
+  assert.equal(await page.locator('#notesBtn svg').count(),1);
+  const toolbar=await page.evaluate(()=>{const a=document.getElementById('notesBtn').getBoundingClientRect(),b=document.getElementById('copy').getBoundingClientRect(),m=document.querySelector('#modes button').getBoundingClientRect();return {notes:{width:a.width,height:a.height},copy:{width:b.width,height:b.height},mode:{height:m.height},copyBackground:getComputedStyle(document.getElementById('copy')).backgroundColor,copyColor:getComputedStyle(document.getElementById('copy')).color};});
+  assert.deepEqual(toolbar.notes,toolbar.copy);
+  assert.equal(toolbar.notes.height,toolbar.mode.height);
+  assert.equal(toolbar.copyBackground,'rgb(242, 242, 242)');
+  assert.equal(toolbar.copyColor,'rgb(0, 0, 0)');
+  const migrated=await page.evaluate(()=>{const old={schema:2,settings:{mode:'frame'},history:[{mode:'frame',snapshot:{schema:2,settings:{mode:'frame'}}}]};migrateStateSchema(old);return {schema:old.schema,mode:old.settings.mode,historyMode:old.history[0].mode,snapshotSchema:old.history[0].snapshot.schema,snapshotMode:old.history[0].snapshot.settings.mode};});
+  assert.deepEqual(migrated,{schema:3,mode:'frame_sclip',historyMode:'frame_sclip',snapshotSchema:3,snapshotMode:'frame_sclip'});
   assert.equal(await page.evaluate(()=>document.getElementById('copy').parentElement.className),'action-buttons');
   assert.equal(await page.evaluate(()=>document.getElementById('notesBtn').nextElementSibling.id),'copy');
   assert.equal(await page.evaluate(()=>document.getElementById('modeHint').nextElementSibling.className),'copy-action');
