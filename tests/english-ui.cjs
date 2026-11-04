@@ -185,6 +185,8 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.getAttribute('#copy','aria-pressed'),null);
 assert.equal(await page.evaluate(()=>document.querySelector('#modes [data-value=frame]').nextElementSibling.dataset.value),'frame_sclip');
   assert.equal(await page.locator('#modes button[data-value]').count(),6);
+  assert.equal(await page.locator('#modes [data-value=frame_sclip] strong').textContent(),'Frame + SClip');
+  assert.match(await page.locator('#modes [data-value=frame_sclip] svg').evaluate(svg=>svg.innerHTML),/M5 19h18/);
   assert.equal(await page.evaluate(()=>document.getElementById('copy').parentElement.className),'action-buttons');
   assert.equal(await page.evaluate(()=>document.getElementById('notesBtn').nextElementSibling.id),'copy');
   const placeholder=await page.getAttribute('#links','placeholder');assert.match(placeholder,/stories\/username\/123\//);assert.doesNotMatch(placeholder,/https?:/);
