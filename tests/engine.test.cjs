@@ -43,6 +43,9 @@ test('legacy settings migrate without changing saved meaning',()=>{
  const s=B.normalizeSettings({mode:'video',audioFormat:'mp3',min:'4',folder:'/my/path'},undefined);
  assert.equal(s.mode,'av');assert.equal(s.audioFormat,undefined);assert.equal(s.min,'4');assert.equal(s.folder,'/my/path');
  assert.equal(B.normalizeSettings({mode:'video'},2).mode,'video');
+ assert.equal(B.normalizeSettings({mode:'frame'},2).mode,'frame_sclip');
+ assert.equal(B.normalizeSettings({mode:'frame'},3).mode,'frame');
+ assert.equal(B.normalizeSettings({mode:'video'},3).mode,'video');
 });
 test('StillClip is video only first second; ignores editor',()=>{
  const c=B.build(input({mode:'still'},[{start:'bad',end:'bad'}])).command;
@@ -65,13 +68,13 @@ function frameFixture(t) {
  const output=path.join(home,'storage/shared/Download/Apps/YT-DLPTemp/Frame');
  const clipOutput=path.join(home,'storage/shared/Download/Apps/YT-DLPTemp/SClip');
  const env={...process.env,HOME:home,PREFIX:prefix,TMPDIR:path.join(root,'missing','tmp'),PATH:tools+path.delimiter+process.env.PATH,FRAME_ROOT:root,FRAME_KIND:'fps30',FRAME_LOG:path.join(root,'urls.log'),FRAME_ENCODINGS:path.join(root,'encodings.log')};
- function build(links='https://instagram.com/stories/account/123',settings={}) {return B.build({links,settings:{mode:'frame',cookies:'$HOME/cookies with $ literal.txt',requests:'0',min:'0',max:'0',...settings}}).command;}
+ function build(links='https://instagram.com/stories/account/123',settings={}) {return B.build({links,settings:{mode:'frame_sclip',cookies:'$HOME/cookies with $ literal.txt',requests:'0',min:'0',max:'0',...settings}}).command;}
  function run(links,settings={},extra={}) {const command=build(links,settings);execFileSync('bash',['-n'],{input:command});const result=spawnSync('bash',['-c',command],{env:{...env,...extra},encoding:'utf8',timeout:20000});assert.doesNotMatch((result.stdout||'')+(result.stderr||''),/Overwrite|Press Enter|\[y\/N\]|\[Y\/n\]/i);return result;}
  function clean() {
   assert.equal(fs.existsSync(env.TMPDIR),false);
   assert.deepEqual(fs.readdirSync(path.join(prefix,'tmp')),[],'no private video/work files');
   assert.ok(fs.readdirSync(output).every(name=>name.endsWith('.jpg')),'only final JPGs in Frame output');
-  assert.ok(fs.readdirSync(clipOutput).every(name=>name.endsWith('.mkv')),'only final one-second clips in SClip output');
+  if(fs.existsSync(clipOutput)) assert.ok(fs.readdirSync(clipOutput).every(name=>name.endsWith('.mkv')),'only final one-second clips in SClip output');
  }
  function expected(source,target,first=false) {
   const frames=JSON.parse(execFileSync('ffprobe',['-v','error','-select_streams','v:0','-show_frames','-of','json',source],{encoding:'utf8'})).frames;
@@ -81,7 +84,7 @@ function frameFixture(t) {
  }
  return {root,home,prefix,tools,sources,output,clipOutput,env,build,run,clean,expected};
 }
-test('Frame produces the matching SClip and nearest JPG at 1/24/30/60 FPS and variable FPS',{skip:!ffmpegAvailable},t=>{
+test('Frame + SClip produces a matching SClip and nearest JPG at 1/24/30/60 FPS and variable FPS',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);const command=f.build();
  assert.ok(command.includes('SClip'));
  assert.match(command,/^bash -c '/);assert.match(command,/--no-overwrites -f "bv" --download-sections "\*0-1"/);
@@ -91,7 +94,7 @@ test('Frame produces the matching SClip and nearest JPG at 1/24/30/60 FPS and va
  let count=0;
  for(const [kind,target] of [['one',.5],['fps24',.5],['fps30',.5],['fps60',.5],['short',.5],['vfr',.5],['fps30',.51],['fps30',.52],['short',.85]]) {
   const settings=target===.5 ? {} : {frameTime:'custom',frameCustomTime:String(target)};
-  const result=f.run(undefined,settings,{FRAME_KIND:kind});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı JPG: 1 \| Başarısız JPG: 0/);
+  const result=f.run(undefined,settings,{FRAME_KIND:kind});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Başarısız: 0/);
   const file=path.join(f.output,`account-20261029-1530-${String(++count).padStart(2,'0')}.jpg`);
   assert.deepEqual(fs.readFileSync(file),f.expected(f.sources[kind],target),kind+' nearest frame, source dimensions, one JPG encoding');
   const clip=path.join(f.clipOutput,`account-20261029-1530-${String(count).padStart(2,'0')}.mkv`);
@@ -100,40 +103,40 @@ test('Frame produces the matching SClip and nearest JPG at 1/24/30/60 FPS and va
  }
  assert.equal(fs.readFileSync(f.env.FRAME_ENCODINGS,'utf8').trim().split('\n').length,count,'one JPEG encode per successful item');
 });
-test('Frame retains the original downloaded clip with VP9 ICC stream side data',{skip:!ffmpegAvailable},t=>{
+test('Frame + SClip retains the original downloaded clip with VP9 ICC stream side data',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);
  const source=path.join(f.root,'icc.mkv');
  fs.writeFileSync(source,Buffer.from(fs.readFileSync(path.join(__dirname,'fixtures/vp9-icc.mp4.base64'),'utf8'),'base64'));
  const old=execFileSync('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-of','csv=s=x:p=0',source],{encoding:'utf8'}).trim();
  assert.notEqual(old,'96x64','fixture exercises ICC side-data CSV decoration');
  const result=f.run(undefined,{}, {FRAME_KIND:'icc'});
- assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı JPG: 1 \| Başarısız JPG: 0/);
+ assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Başarısız: 0/);
  const jpg=path.join(f.output,'account-20261029-1530-01.jpg');
  assert.deepEqual(fs.readFileSync(jpg),f.expected(source,.5));
  assert.deepEqual(fs.readFileSync(path.join(f.clipOutput,'account-20261029-1530-01.mkv')),fs.readFileSync(source));
  assert.equal(fs.readFileSync(f.env.FRAME_ENCODINGS,'utf8').trim().split('\n').length,1);f.clean();
 });
-test('Frame eight URLs produce eight matching JPG/SClip pairs and preserve existing files',{skip:!ffmpegAvailable},t=>{
+test('Frame + SClip produces eight matching JPG/SClip pairs and preserve existing files',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);fs.mkdirSync(f.output,{recursive:true});fs.mkdirSync(f.clipOutput,{recursive:true});
  const prior=path.join(f.output,'account-20261029-1530-01.jpg');fs.writeFileSync(prior,'existing user JPG');
  const priorClip=path.join(f.clipOutput,'account-20261029-1530-01.mkv');fs.writeFileSync(priorClip,'existing user clip');
  const links=Array.from({length:8},(_,i)=>`https://instagram.com/stories/account/${100+i}`).join(' ');
- const result=f.run(links);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı JPG: 8 \| Başarısız JPG: 0/);
+ const result=f.run(links);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 8 \| Başarısız: 0/);
  assert.equal(fs.readdirSync(f.output).length,9);assert.equal(fs.readdirSync(f.clipOutput).length,9);
  assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
  const again=f.run(links);assert.equal(again.status,0,again.stderr);assert.equal(fs.readdirSync(f.output).length,17);assert.equal(fs.readdirSync(f.clipOutput).length,17);assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
- const multi=f.run('https://instagram.com/stories/multi/123');assert.equal(multi.status,0,multi.stderr);assert.match(multi.stdout,/Başarılı JPG: 1/);assert.equal(fs.readdirSync(f.output).length,18);assert.equal(fs.readdirSync(f.clipOutput).length,18);f.clean();
+ const multi=f.run('https://instagram.com/stories/multi/123');assert.equal(multi.status,0,multi.stderr);assert.match(multi.stdout,/Başarılı çift: 1/);assert.equal(fs.readdirSync(f.output).length,18);assert.equal(fs.readdirSync(f.clipOutput).length,18);f.clean();
  const blocked=path.join(f.root,'prefix-file');fs.writeFileSync(blocked,'keep');
  const fallback=f.run(undefined,{}, {PREFIX:blocked});assert.equal(fallback.status,0,fallback.stderr);assert.equal(fs.readFileSync(blocked,'utf8'),'keep');assert.deepEqual(fs.readdirSync(path.join(f.home,'.cache/yt-dlp-frame')),[]);f.clean();
 });
-test('Frame keeps only complete JPG/SClip pairs and cleans failures and fallbacks',{skip:!ffmpegAvailable},t=>{
+test('Frame + SClip keeps only complete JPG/SClip pairs and cleans failures and fallbacks',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);
  const result=f.run('https://instagram.com/stories/bad/1 https://instagram.com/stories/empty/2 https://instagram.com/stories/account/3');
- assert.equal(result.status,1);assert.match(result.stdout,/Başarılı JPG: 1 \| Başarısız JPG: 2/);assert.match(result.stderr,/stories\/bad\/1 — indirme başarısız/);assert.match(result.stderr,/stories\/empty\/2 — video bulunamadı/);f.clean();
+ assert.equal(result.status,1);assert.match(result.stdout,/Başarılı çift: 1 \| Başarısız: 2/);assert.match(result.stderr,/stories\/bad\/1 — indirme başarısız/);assert.match(result.stderr,/stories\/empty\/2 — video bulunamadı/);f.clean();
  const fallback=f.run(undefined,{}, {FRAME_BEHAVIOR:'fallback'});assert.equal(fallback.status,0,fallback.stderr);
  assert.deepEqual(fs.readFileSync(path.join(f.output,'account-20261029-1530-02.jpg')),f.expected(f.sources.fps30,.5,true));f.clean();
  const before=fs.readdirSync(f.output).sort(), beforeClips=fs.readdirSync(f.clipOutput).sort();
- const broken=f.run(undefined,{}, {FRAME_BEHAVIOR:'broken'});assert.equal(broken.status,1);assert.match(broken.stdout,/Başarılı JPG: 0 \| Başarısız JPG: 1/);assert.match(broken.stderr,/JPG oluşturulamadı veya doğrulanamadı/);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
+ const broken=f.run(undefined,{}, {FRAME_BEHAVIOR:'broken'});assert.equal(broken.status,1);assert.match(broken.stdout,/Başarılı çift: 0 \| Başarısız: 1/);assert.match(broken.stderr,/JPG oluşturulamadı veya doğrulanamadı/);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
  const signal=f.run(undefined,{}, {FRAME_BEHAVIOR:'signal'});assert.notEqual(signal.status,0);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
  const realMv=execFileSync('which',['mv'],{encoding:'utf8'}).trim(),moveCount=path.join(f.root,'mv-count');
  fs.writeFileSync(path.join(f.tools,'mv'),`#!/usr/bin/env bash
@@ -336,7 +339,7 @@ test('English changes only Frame messages and leaves download options and paths 
  assert.match(en,/Successful JPGs: %d/);assert.doesNotMatch(en,/Başarılı JPG:/);
  assert.match(en,/Türkçe/);assert.match(en,/-q:v 1 -pix_fmt yuvj444p/);
  assert.equal(spawnSync('bash',['-n','-c',en]).status,0);
- const messages=[['FFmpeg bulunamadı. Termux: pkg install ffmpeg','FFmpeg not found. Termux: pkg install ffmpeg'],['geçici klasör oluşturulamadı','could not create temporary directory'],['indirme başarısız','download failed'],['video bulunamadı','video not found'],['kaynak çözünürlüğü okunamadı','could not read source dimensions'],['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],['JPG veya SClip hedef klasöre aktarılamadı','could not publish JPG or SClip to output folders'],['Başarılı JPG: %d | Başarısız JPG: %d','Successful JPGs: %d | Failed JPGs: %d']];
+ const messages=[['FFmpeg bulunamadı. Termux: pkg install ffmpeg','FFmpeg not found. Termux: pkg install ffmpeg'],['geçici klasör oluşturulamadı','could not create temporary directory'],['indirme başarısız','download failed'],['video bulunamadı','video not found'],['kaynak çözünürlüğü okunamadı','could not read source dimensions'],['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],['JPG hedef klasöre aktarılamadı','could not publish JPG to output folder'],['Başarılı JPG: %d | Başarısız JPG: %d','Successful JPGs: %d | Failed JPGs: %d']];
  let expected=tr;for(const [a,b] of messages)expected=expected.replace(a,b);
  assert.equal(en,expected);
  for(const mode of ['av','video','audio','still']) {
@@ -344,6 +347,25 @@ test('English changes only Frame messages and leaves download options and paths 
  }
 });
 
+test('English Frame + SClip translates paired-output messages and keeps the same command structure',()=>{
+ const original=input({mode:'frame_sclip',cookies:'$HOME/Türkçe/cookies.txt'});
+ const tr=B.build(original).command,en=B.build({...original,language:'en'}).command;
+ assert.match(en,/Successful pairs: %d \| Failed: %d/);assert.doesNotMatch(en,/Başarılı çift:|Başarısız:/);
+ assert.match(en,/CLIP_OUT=/);assert.match(en,/-q:v 1 -pix_fmt yuvj444p/);
+ assert.equal(spawnSync('bash',['-n','-c',en]).status,0);
+ const messages=[
+  ['FFmpeg bulunamadı. Termux: pkg install ffmpeg','FFmpeg not found. Termux: pkg install ffmpeg'],
+  ['geçici klasör oluşturulamadı','could not create temporary directory'],
+  ['indirme başarısız','download failed'],
+  ['video bulunamadı','video not found'],
+  ['kaynak çözünürlüğü okunamadı','could not read source dimensions'],
+  ['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],
+  ['JPG veya SClip hedef klasöre aktarılamadı','could not publish JPG or SClip to output folders'],
+  ['Başarılı çift: %d | Başarısız: %d','Successful pairs: %d | Failed: %d']
+ ];
+ let expected=tr;for(const [a,b] of messages)expected=expected.replace(a,b);
+ assert.equal(en,expected);
+});
 test('daily notes accumulate unique cleaned links, retain deletions and update annotations',()=>{
  const first=B.mergeDailyNotes('', 'https://instagram.com/stories/user.a/1?utm_source=x V\nreel/Ab_c S');
  assert.equal(first,'stories/user.a/1 V\nreel/Ab_c S');
@@ -379,7 +401,13 @@ test('daily archive retains every accepted URL form after notes are removed or r
  const multi='(stories/a/1) V (stories/b/2) S';
  assert.equal(B.parseUrls(B.mergeDailyNotes(multi,'stories/a/1 V1s')).length,2);
 });
-test('Frame honors selected engine and quoted output folder without changing cookies or media options',()=>{
+test('Frame Only saves one JPG and never creates an SClip folder',{skip:!ffmpegAvailable},t=>{
+ const f=frameFixture(t);
+ const result=f.run(undefined,{mode:'frame'});
+ assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı JPG: 1 \| Başarısız JPG: 0/);
+ assert.ok(fs.existsSync(path.join(f.output,'account-20261029-1530-01.jpg')));assert.equal(fs.existsSync(f.clipOutput),false);f.clean();
+});
+test('Frame Only honors selected engine and quoted output folder without creating SClip output',()=>{
  const folder='/tmp/Çığ "quoted" $literal';
  for(const engine of ['normal','experimental']) {
   const command=B.build({links:story(1),settings:{...B.defaults,engine,mode:'frame',folder,cookies:'/tmp/cookies file.txt'}}).command;
@@ -388,13 +416,13 @@ test('Frame honors selected engine and quoted output folder without changing coo
   assert.match(command,/-f "bv" --download-sections "\*0-1"/);assert.doesNotMatch(command,/force-keyframes/);execFileSync('bash',['-n'],{input:command});
  }
 });
-test('Frame rotation metadata preserves displayed dimensions, quality and single encoding',{skip:!ffmpegAvailable},t=>{
+test('Frame + SClip rotation metadata preserves JPG dimensions and clip output',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t),base=path.join(f.root,'rotation-base.mp4');
  execFileSync('ffmpeg',['-nostdin','-v','error','-f','lavfi','-i','testsrc2=size=96x64:rate=30:duration=1','-c:v','libx264',base]);
  for(const [index,angle] of [90,180,270,-90].entries()) {
   const kind='rotation'+index,source=path.join(f.root,kind+'.mkv');
   execFileSync('ffmpeg',['-nostdin','-v','error','-display_rotation',String(angle),'-i',base,'-c','copy','-f','mp4',source]);
-  const result=f.run(undefined,{engine:index%2?'normal':'experimental'},{FRAME_KIND:kind});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı JPG: 1/);
+  const result=f.run(undefined,{engine:index%2?'normal':'experimental'},{FRAME_KIND:kind});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1/);
   const jpg=path.join(f.output,'account-20261029-1530-'+String(index+1).padStart(2,'0')+'.jpg');
   const meta=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-of','json',jpg],{encoding:'utf8'})).streams[0];
   assert.deepEqual([meta.width,meta.height],angle===180?[96,64]:[64,96]);assert.equal(meta.pix_fmt,'yuvj444p');assert.deepEqual(fs.readFileSync(jpg),f.expected(source,.5));f.clean();

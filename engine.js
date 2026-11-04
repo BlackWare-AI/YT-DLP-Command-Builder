@@ -11,7 +11,8 @@
     requests:'2', min:'6', max:'16', thumb:true, overwrite:true});
   function normalizeSettings(settings, schema) {
     const result = {...defaults, ...settings};
-    if (schema !== 2 && result.mode === 'video') result.mode = 'av';
+    if (schema !== 2 && schema !== 3 && result.mode === 'video') result.mode = 'av';
+    if (schema === 2 && result.mode === 'frame') result.mode = 'frame_sclip';
     delete result.audioFormat;
     delete result.frameOutput;
     if (!['0.5','custom'].includes(result.frameTime)) result.frameTime='0.5';
@@ -238,7 +239,7 @@
       throw Error('Frame zamanı 0 ile 1 saniye arasında olmalı.');
     return String(Number(raw));
   }
-  function buildFrameCommand(settings, urls, items, min, max, req, cookies, language) {
+  function buildFrameCommand(settings, urls, items, min, max, req, cookies, language, keepClip) {
     const message=(tr,en)=>language==='en' ? en : tr;
     const target=frameTimestamp(settings);
     // Keep every improving candidate, then take the last one: the global nearest frame.
@@ -253,11 +254,11 @@
       items ? 'SELECT=(--playlist-items '+quote(items)+')' : 'SELECT=()',
       'SLEEP=(--sleep-requests '+req+' --sleep-interval '+min+' --max-sleep-interval '+max+')',
       'OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/Frame'),
-      'CLIP_OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip'),
+      ...(keepClip ? ['CLIP_OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip')] : []),
       'FILTER='+quote(filter),
       'URLS=('+urls.map(quote).join(' ')+')',
       "command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1 || { printf '%s\\n' '"+message("FFmpeg bulunamadı. Termux: pkg install ffmpeg","FFmpeg not found. Termux: pkg install ffmpeg")+"' >&2; exit 127; }",
-      "mkdir -p -- \"$OUT\" \"$CLIP_OUT\" || exit 1",
+      keepClip ? "mkdir -p -- \"$OUT\" \"$CLIP_OUT\" || exit 1" : "mkdir -p -- \"$OUT\" || exit 1",
       "PRIVATE_BASE=${PREFIX:-$HOME/.cache}/tmp",
       "if ! mkdir -p -- \"$PRIVATE_BASE\" 2>/dev/null || [[ ! -w \"$PRIVATE_BASE\" ]]; then",
       "  PRIVATE_BASE=\"$HOME/.cache/yt-dlp-frame\"",
@@ -265,10 +266,10 @@
       "fi",
       "RUN_TMP=$(mktemp -d \"$PRIVATE_BASE/ytdlp-frame.XXXXXX\") || exit 1",
       "PUBLISH_TMP=\"\"",
-      "CLIP_PUBLISH_TMP=\"\"",
+      ...(keepClip ? ["CLIP_PUBLISH_TMP=\"\""] : []),
       "cleanup() {",
       "  [[ -z \"$PUBLISH_TMP\" ]] || rm -rf -- \"$PUBLISH_TMP\"",
-      "  [[ -z \"$CLIP_PUBLISH_TMP\" ]] || rm -rf -- \"$CLIP_PUBLISH_TMP\"",
+      ...(keepClip ? ["  [[ -z \"$CLIP_PUBLISH_TMP\" ]] || rm -rf -- \"$CLIP_PUBLISH_TMP\""] : []),
       "  rm -rf -- \"$RUN_TMP\"",
       "}",
       "trap cleanup EXIT",
@@ -331,38 +332,58 @@
       "      ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || continue",
       "      valid_jpg || continue",
       "    fi",
-      "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}; EXT=${VIDEO##*.}",
-      "    REASON='"+message("JPG veya SClip hedef klasöre aktarılamadı","could not publish JPG or SClip to output folders")+"'",
-      "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || continue",
-      "    CLIP_PUBLISH_TMP=$(mktemp -d \"$CLIP_OUT/.sclip-publish.XXXXXX\") || { rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"; continue; }",
-      "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
-      "    CLIP_STAGED=\"$CLIP_PUBLISH_TMP/clip.$EXT\"",
-      "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\" && cp -- \"$VIDEO\" \"$CLIP_STAGED\" && cmp -s -- \"$VIDEO\" \"$CLIP_STAGED\"; then",
-      "      SEQUENCE=1",
-      "      while :; do",
-      "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"; CLIP_TARGET=\"$CLIP_OUT/$BASE-$SUFFIX.$EXT\"",
-      "        if [[ -e \"$TARGET\" || -L \"$TARGET\" || -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
-      "        mv -nT -- \"$CLIP_STAGED\" \"$CLIP_TARGET\" 2>/dev/null || break",
-      "        if [[ -e \"$CLIP_STAGED\" ]]; then",
-      "          if [[ -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
-      "          break",
-      "        fi",
-      "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || true",
-      "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
-      "        rm -f -- \"$CLIP_TARGET\"",
-      "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
-      "        break",
-      "      done",
-      "    fi",
-      "    rm -rf -- \"$PUBLISH_TMP\" \"$CLIP_PUBLISH_TMP\"; PUBLISH_TMP=\"\"; CLIP_PUBLISH_TMP=\"\"",
-      "    [[ $SAVED -eq 0 ]] || break",
+      ...(keepClip ? [
+        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}; EXT=${VIDEO##*.}",
+        "    REASON='"+message("JPG veya SClip hedef klasöre aktarılamadı","could not publish JPG or SClip to output folders")+"'",
+        "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || continue",
+        "    CLIP_PUBLISH_TMP=$(mktemp -d \"$CLIP_OUT/.sclip-publish.XXXXXX\") || { rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"; continue; }",
+        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
+        "    CLIP_STAGED=\"$CLIP_PUBLISH_TMP/clip.$EXT\"",
+        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\" && cp -- \"$VIDEO\" \"$CLIP_STAGED\" && cmp -s -- \"$VIDEO\" \"$CLIP_STAGED\"; then",
+        "      SEQUENCE=1",
+        "      while :; do",
+        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"; CLIP_TARGET=\"$CLIP_OUT/$BASE-$SUFFIX.$EXT\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" || -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        mv -nT -- \"$CLIP_STAGED\" \"$CLIP_TARGET\" 2>/dev/null || break",
+        "        if [[ -e \"$CLIP_STAGED\" ]]; then",
+        "          if [[ -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "          break",
+        "        fi",
+        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || true",
+        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
+        "        rm -f -- \"$CLIP_TARGET\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        break",
+        "      done",
+        "    fi",
+        "    rm -rf -- \"$PUBLISH_TMP\" \"$CLIP_PUBLISH_TMP\"; PUBLISH_TMP=\"\"; CLIP_PUBLISH_TMP=\"\"",
+        "    [[ $SAVED -eq 0 ]] || break",
+      ] : [
+        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}",
+        "    REASON='"+message("JPG hedef klasöre aktarılamadı","could not publish JPG to output folder")+"'",
+        "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || continue",
+        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
+        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\"; then",
+        "      SEQUENCE=1",
+        "      while :; do",
+        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || break",
+        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
+        "        [[ -e \"$TARGET\" || -L \"$TARGET\" ]] || break",
+        "        SEQUENCE=$((SEQUENCE+1))",
+        "      done",
+        "    fi",
+        "    rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"",
+        "    [[ $SAVED -eq 0 ]] || break",
+      ]),
       "  done",
       "  if [[ $SAVED -eq 0 ]]; then FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — $REASON\"); fi",
       "  rm -rf -- \"$ITEM_TMP\"",
       "done",
       "cleanup",
       "trap - EXIT HUP INT TERM",
-      "printf '"+message("Başarılı JPG: %d | Başarısız JPG: %d","Successful JPGs: %d | Failed JPGs: %d")+"\\n' \"$SUCCESS\" \"$FAILURES\"",
+      "printf '"+message(keepClip ? "Başarılı çift: %d | Başarısız: %d" : "Başarılı JPG: %d | Başarısız JPG: %d", keepClip ? "Successful pairs: %d | Failed: %d" : "Successful JPGs: %d | Failed JPGs: %d")+"\\n' \"$SUCCESS\" \"$FAILURES\"",
       "if [[ ${#ERRORS[@]} -gt 0 ]]; then printf '%s\\n' \"${ERRORS[@]}\" >&2; fi",
       "[[ $FAILURES -eq 0 ]]"
     ];
@@ -386,7 +407,7 @@
   function build(input) {
     const s = {...defaults, ...input.settings};
     delete s.audioFormat;
-    if (!['normal','experimental'].includes(s.engine) || !['av','video','audio','still','frame'].includes(s.mode)) throw Error('Geçersiz motor veya biçim.');
+    if (!['normal','experimental'].includes(s.engine) || !['av','video','audio','still','frame','frame_sclip'].includes(s.mode)) throw Error('Geçersiz motor veya biçim.');
     const urls = parseUrls(input.links);
     if (!urls.length) throw Error('En az bir Instagram içerik bağlantısı girin.');
     const items = urls.some(collectionKind) ? selectionSpec(input.selection) : null;
@@ -394,11 +415,11 @@
     if (max < min) throw Error('Sleep max, minimumdan küçük olamaz.');
     shellPath(s.folder);
     const outputSubdir = s.mode === 'audio' ? 'Audio' : s.mode === 'still' ? 'SClip' : 'Video';
-    const folder = s.mode==='frame' ? null : shellPath(s.folder.trim().replace(/\/+$/, '') + '/' + outputSubdir);
+    const folder = ['frame','frame_sclip'].includes(s.mode) ? null : shellPath(s.folder.trim().replace(/\/+$/, '') + '/' + outputSubdir);
     const cookies = s.cookies.trim() ? shellPath(s.cookies) : null;
     const cuts = ['av','video'].includes(s.mode) ? (input.cuts || []).map(validateCut) :
       s.mode === 'still' ? [{start:'0',end:'1'}] : [];
-    if(s.mode==='frame') return {command:buildFrameCommand(s,urls,items,min,max,req,cookies,input.language),urls,settings:s,cuts:[],selection:input.selection||{},commandCount:1};
+    if(['frame','frame_sclip'].includes(s.mode)) return {command:buildFrameCommand(s,urls,items,min,max,req,cookies,input.language,s.mode==='frame_sclip'),urls,settings:s,cuts:[],selection:input.selection||{},commandCount:1};
     const args = [s.engine === 'normal' ? 'yt-dlp' : shellPath('$HOME/yt-dlp-story-test/bin/yt-dlp'), '--ignore-config', '--no-playlist'];
     if (items) args.push('--playlist-items ' + quote(items));
     if (cookies) args.push('--cookies ' + cookies);

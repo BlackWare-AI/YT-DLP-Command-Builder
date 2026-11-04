@@ -10,6 +10,24 @@ function validState(v) {
     (v.notesDailyHistory===undefined || Array.isArray(v.notesDailyHistory)) &&
     (v.notes===undefined || typeof v.notes==='string') && (v.newLink===undefined || typeof v.newLink==='string');
 }
+function migrateStateSchema(value) {
+  const sourceSchema=value.schema;
+  value.settings=Builder.normalizeSettings(value.settings,sourceSchema);
+  if(Array.isArray(value.history)) for(const record of value.history) {
+    if(!record || typeof record!=='object') continue;
+    const snapshot=record.snapshot;
+    const snapshotSchema=snapshot && snapshot.schema!==undefined ? snapshot.schema : sourceSchema;
+    if(snapshot && snapshot.settings && typeof snapshot.settings==='object') {
+      snapshot.settings=Builder.normalizeSettings(snapshot.settings,snapshotSchema);
+      if(snapshotSchema===2 && record.mode==='frame') record.mode='frame_sclip';
+      snapshot.schema=3;
+    } else if(sourceSchema===2 && record.mode==='frame') {
+      record.mode='frame_sclip';
+    }
+  }
+  value.schema=3;
+  return value;
+}
 function readState() {
   try {
     const raw=native ? [native.getState()] : [localStorage.getItem('builder.state'),localStorage.getItem('builder.state.backup')];
@@ -29,8 +47,7 @@ function readState() {
   }
 }
 state=readState();
-state.settings=Builder.normalizeSettings(state.settings,state.schema);
-state.schema=2;
+migrateStateSchema(state);
 state.selection={only:'',after:'',before:'',...state.selection};
 state.notes=state.notes===undefined ? '' : state.notes;
 state.newLink=state.newLink===undefined ? '' : state.newLink;
@@ -68,7 +85,8 @@ function renderButtons() {
     const active=button.dataset.frameTime===state.settings.frameTime;
     button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
   }
-  $('modeHint').textContent={av:'En iyi görüntü + en iyi ses. Uyumlu kapsayıcıyı yt-dlp seçer.',video:'En iyi sessiz video akışı. Ses eklenmez.',audio:'En iyi ses akışı, kaynak biçimi korunarak çıkarılır.',still:'En iyi sessiz video akışından ilk 1 saniye.',frame:'İlk saniyeden seçilen JPG + aynı 1 saniyelik video; SClip ve Frame klasörlerine kaydedilir.'}[state.settings.mode];
+  $('modeHint').textContent={av:'En iyi görüntü + en iyi ses. Uyumlu kapsayıcıyı yt-dlp seçer.',video:'En iyi sessiz video akışı. Ses eklenmez.',audio:'En iyi ses akışı, kaynak biçimi korunarak çıkarılır.',still:'En iyi sessiz video akışından ilk 1 saniye.',frame:'İlk saniyeden seçilen zamanda tek JPG kare; geçici video silinir.',frame_sclip:'İlk saniyeden bir JPG kare ve aynı 1 saniyelik sessiz video birlikte kaydedilir.'}[state.settings.mode];
+  $('frameDescription').textContent=state.settings.mode==='frame' ? 'Tek JPG · geçici video otomatik silinir. FFmpeg gerekir.' : 'JPG + 1 sn video · FFmpeg gerekir.';
 }
 function renderCuts() {
   $('cuts').textContent='';
@@ -115,7 +133,7 @@ function renderLinks(urls) {
 }
 function renderSelection(urls) {
   $('cutSection').hidden = !urls.length || !['av','video'].includes(state.settings.mode);
-  $('frameSection').hidden = !urls.length || state.settings.mode!=='frame';
+  $('frameSection').hidden = !urls.length || !['frame','frame_sclip'].includes(state.settings.mode);
   const kinds=urls.map(Builder.collectionKind).filter(Boolean);
   $('itemSection').hidden=!kinds.length;
   const active=kinds.length && Object.keys(state.selection).some(k=>String(state.selection[k]).trim());
@@ -157,7 +175,7 @@ function exportText(text,filename) {
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function historyText(records) {
-  return records.map(h=>new Date(h.date).toLocaleString('tr-TR')+' | '+(Array.isArray(h.urls) ? h.urls.length : h.count)+' bağlantı | '+h.mode+' | '+h.engine+
+  return records.map(h=>new Date(h.date).toLocaleString('tr-TR')+' | '+(Array.isArray(h.urls) ? h.urls.length : h.count)+' bağlantı | '+({frame:'Yalnızca Kare',frame_sclip:'Kesit + Kare',still:'Kısa Kesit'}[h.mode] || h.mode)+' | '+h.engine+
     '\nYalnızca komut oluşturuldu ve kopyalandı.\n'+(h.urls || []).join('\n')+'\n'+
     (h.snapshot ? JSON.stringify(h.snapshot.settings,null,2)+'\nÖğe seçimi: '+JSON.stringify(h.snapshot.selection || {})+'\nKesitler: '+JSON.stringify(h.snapshot.cuts)+'\n' : '')+h.command).join('\n\n');
 }
@@ -212,7 +230,7 @@ function showHistory() {
     const item=document.createElement('details'); item.className='history-item';
     const summary=document.createElement('summary');
     summary.textContent=d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})+' | '+(Array.isArray(h.urls) ? h.urls.length : h.count)+' bağlantı | '+
-      ({av:'Video + Ses',video:h.snapshot && h.snapshot.schema===2 ? 'Sessiz Video' : 'Video + Ses',audio:'Ses',still:'StillClip',frame:'Frame'}[h.mode] || h.mode)+' | '+(h.engine==='normal'?'Normal':'Deneysel');
+      ({av:'Video + Ses',video:h.snapshot && [2,3].includes(h.snapshot.schema) ? 'Sessiz Video' : 'Video + Ses',audio:'Ses',still:'Kısa Kesit',frame:'Yalnızca Kare',frame_sclip:'Kesit + Kare'}[h.mode] || h.mode)+' | '+(h.engine==='normal'?'Normal':'Deneysel');
     item.append(summary);
     let loaded=false;
     item.addEventListener('toggle',()=>{
@@ -221,7 +239,7 @@ function showHistory() {
     const actions=document.createElement('div'); actions.className='group history-item-actions';
     actions.append(button('Tekrar düzenle','edit',()=>{
         if (!h.snapshot) { alert('Eski prototip kaydında düzenleme bilgisi bulunmuyor. Komutu kopyalayabilirsiniz.'); return; }
-        state.settings=Builder.normalizeSettings(h.snapshot.settings,h.snapshot.schema); state.schema=2; state.links=h.snapshot.links;
+        state.settings=Builder.normalizeSettings(h.snapshot.settings,h.snapshot.schema); state.schema=3; state.links=h.snapshot.links;
         state.cuts=JSON.parse(JSON.stringify(h.snapshot.cuts)); state.selection={only:'',after:'',before:'',...h.snapshot.selection}; save(); hydrate(); closeHistory(); window.scrollTo(0,0);
       }),
       button('Kopyala','copy',()=>{
@@ -318,7 +336,7 @@ $('addCut').onclick=()=>{state.cuts.push({start:'0',end:'1'}); renderCuts(); sav
 $('copy').onclick=async()=>{
   if(copying) return;
   const result=preview(); if (!result) return;
-  const snapshot=JSON.parse(JSON.stringify({schema:2,settings:state.settings,links:state.links,cuts:state.cuts,selection:state.selection}));
+  const snapshot=JSON.parse(JSON.stringify({schema:3,settings:state.settings,links:state.links,cuts:state.cuts,selection:state.selection}));
   copying=true; $('copy').disabled=true;
   try {
     // Require a saved draft before attempting any destructive post-copy change.
@@ -334,7 +352,7 @@ $('copy').onclick=async()=>{
     if(state.links===snapshot.links) state.links='';
     if(JSON.stringify(state.cuts)===JSON.stringify(snapshot.cuts)) state.cuts=[];
     if(JSON.stringify(state.selection)===JSON.stringify(snapshot.selection)) state.selection={only:'',after:'',before:''};
-    if(snapshot.settings.mode==='frame' && state.settings.mode==='frame' &&
+    if(['frame','frame_sclip'].includes(snapshot.settings.mode) && state.settings.mode===snapshot.settings.mode &&
       state.settings.frameTime===snapshot.settings.frameTime && state.settings.frameCustomTime===snapshot.settings.frameCustomTime)
       state.settings={...state.settings,frameTime:'0.5',frameCustomTime:''};
     try { persist(); }
@@ -399,8 +417,7 @@ async function importBackupText(raw) {
     const previous=state, prevHistory=savedHistory, prevDaily=savedDailyHistory;
     try {
       state=imported;
-      state.settings=Builder.normalizeSettings(state.settings,state.schema);
-      state.schema=2;
+      migrateStateSchema(state);
       state.selection={only:'',after:'',before:'',...state.selection};
       savedHistory=null;savedDailyHistory=null;
       persist();
@@ -413,7 +430,7 @@ async function importBackupText(raw) {
 window.receiveBackupImport=importBackupText;
 $('importSettings').onclick=()=>{if(native && typeof native.importBackup==='function') native.importBackup();else $('importFile').click();};
 $('importFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>20*1024*1024)throw Error('Dosya 20 MB sınırını aşıyor.');await importBackupText(await file.text());}catch(err){alert(err.message);}};
-$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.9',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
+$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.1.10',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
 $('export').onclick=()=>exportText(allHistoryText(),'yt-dlp-history.txt');
 function saveNotes() {
   state.notes=$('notes').value;
