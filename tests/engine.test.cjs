@@ -92,7 +92,7 @@ test('Frame + SClip produces a matching SClip and nearest JPG at 1/24/30/60 FPS 
  assert.ok(command.includes('SClip'));
  assert.match(command,/^bash -c '/);assert.match(command,/--no-overwrites -f "bv" --download-sections "\*0-1"/);
  assert.match(command,/-q:v 1 -pix_fmt yuvj444p/);assert.match(command,/trap cleanup EXIT/);
- assert.doesNotMatch(command,/FRAME_TIME|\bawk\b|show_entries frame|\bread\b|force-keyframes|compression_level|\.png/);
+ assert.doesNotMatch(command,/FRAME_TIME|\bawk\b|show_entries frame|force-keyframes|compression_level|\.png/);assert.match(command,/read -r -d/);
  assert.equal(B.defaults.frameTime,'0.5');assert.match(command,/prev_selected_t/);
  let count=0;
  for(const [kind,target] of [['one',.5],['fps24',.5],['fps30',.5],['fps60',.5],['short',.5],['vfr',.5],['fps30',.51],['fps30',.52],['short',.85]]) {
@@ -127,8 +127,8 @@ test('Frame + SClip skips repeated bytes and preserves existing files',{skip:!ff
  const result=f.run(links);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 7 \| Başarısız: 0/);
  assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);
  assert.ok(fs.existsSync(path.join(f.output,'account-20261029-1530-02.jpg')));assert.ok(fs.existsSync(path.join(f.clipOutput,'account-20261029-1530-02.mkv')));assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
- const again=f.run(links);assert.equal(again.status,0,again.stderr);assert.match(again.stdout,/Başarılı çift: 0 \\| Tekrarlanan: 8 \\| Başarısız: 0/);assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
- const multi=f.run('https://instagram.com/stories/multi/123');assert.equal(multi.status,0,multi.stderr);assert.match(multi.stdout,/Başarılı çift: 0 \\| Tekrarlanan: 2 \\| Başarısız: 0/);assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);f.clean();
+ const again=f.run(links);assert.equal(again.status,0,again.stderr);assert.match(again.stdout,/Başarılı çift: 0 \| Tekrarlanan: 8 \| Başarısız: 0/);assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
+ const multi=f.run('https://instagram.com/stories/multi/123');assert.equal(multi.status,0,multi.stderr);assert.match(multi.stdout,/Başarılı çift: 0 \| Tekrarlanan: 2 \| Başarısız: 0/);assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);f.clean();
  const blocked=path.join(f.root,'prefix-file');fs.writeFileSync(blocked,'keep');
  for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const fallback=f.run(undefined,{}, {PREFIX:blocked});assert.equal(fallback.status,0,fallback.stderr);assert.equal(fs.readFileSync(blocked,'utf8'),'keep');assert.deepEqual(fs.readdirSync(path.join(f.home,'.cache/yt-dlp-frame')),[]);f.clean();
 });
@@ -136,7 +136,7 @@ test('Frame Only also skips video already present in SClip',{skip:!ffmpegAvailab
  const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
  fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'same-video-different-name.mkv'));
  const result=f.run(undefined,{mode:'frame'});assert.equal(result.status,0,result.stderr);
- assert.match(result.stdout,/Başarılı JPG: 0 \\| Tekrarlanan: 1 \\| Başarısız JPG: 0/);
+ assert.match(result.stdout,/Başarılı JPG: 0 \| Tekrarlanan: 1 \| Başarısız JPG: 0/);
  assert.deepEqual(fs.readdirSync(f.output),[]);
  assert.deepEqual(fs.readdirSync(f.clipOutput),['same-video-different-name.mkv']);f.clean();
 });
@@ -144,7 +144,7 @@ test('Frame skips identical SClip bytes even when the saved filename differs',{s
  const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
  fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'renamed-existing-video.mkv'));
  const result=f.run();assert.equal(result.status,0,result.stderr);
- assert.match(result.stdout,/Başarılı çift: 0 \\| Tekrarlanan: 1 \\| Başarısız: 0/);
+ assert.match(result.stdout,/Başarılı çift: 0 \| Tekrarlanan: 1 \| Başarısız: 0/);
  assert.equal(fs.readdirSync(f.output).length,0);
  assert.deepEqual(fs.readdirSync(f.clipOutput),['renamed-existing-video.mkv']);f.clean();
 });
@@ -153,7 +153,7 @@ test('Frame continues after a duplicate video within the same URL and saves late
  fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'old-name.mkv'));
  const result=f.run('https://instagram.com/stories/account/mixed');
  assert.equal(result.status,0,result.stderr);
- assert.match(result.stdout,/Başarılı çift: 1 \\| Tekrarlanan: 1 \\| Başarısız: 0/);
+ assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 1 \| Başarısız: 0/);
  assert.deepEqual(fs.readdirSync(f.output),['new-01.jpg']);
  assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),['new-01.mkv','old-name.mkv']);f.clean();
 });
@@ -161,13 +161,13 @@ test('Frame counts source and existing-SClip SHA-256 read errors as failures wit
  const f=frameFixture(t);
  const sourceFailure=f.run(undefined,{}, {SHA_FAIL:1});
  assert.equal(sourceFailure.status,1,sourceFailure.stderr);
- assert.match(sourceFailure.stdout,/Başarılı çift: 0 \\| Tekrarlanan: 0 \\| Başarısız: 1/);
+ assert.match(sourceFailure.stdout,/Başarılı çift: 0 \| Tekrarlanan: 0 \| Başarısız: 1/);
  assert.equal(fs.readdirSync(f.output).length,0);assert.equal(fs.readdirSync(f.clipOutput).length,0);
  fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'existing-video.mkv'));
  fs.rmSync(f.env.SHA_COUNTER,{force:true});
  const existingFailure=f.run(undefined,{}, {SHA_FAIL_AFTER_SOURCE:1});
  assert.equal(existingFailure.status,1,existingFailure.stderr);
- assert.match(existingFailure.stdout,/Başarılı çift: 0 \\| Tekrarlanan: 0 \\| Başarısız: 1/);
+ assert.match(existingFailure.stdout,/Başarılı çift: 0 \| Tekrarlanan: 0 \| Başarısız: 1/);
  assert.deepEqual(fs.readdirSync(f.output),[]);assert.deepEqual(fs.readdirSync(f.clipOutput),['existing-video.mkv']);f.clean();
 });
 test('Frame + SClip keeps only complete JPG/SClip pairs and cleans failures and fallbacks',{skip:!ffmpegAvailable},t=>{
@@ -176,7 +176,7 @@ test('Frame + SClip keeps only complete JPG/SClip pairs and cleans failures and 
  assert.equal(result.status,1);assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 0 \| Başarısız: 2/);assert.match(result.stderr,/stories\/bad\/1 — indirme başarısız/);assert.match(result.stderr,/stories\/empty\/2 — video bulunamadı/);f.clean();
  for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const fallback=f.run(undefined,{}, {FRAME_BEHAVIOR:'fallback'});assert.equal(fallback.status,0,fallback.stderr);
  assert.deepEqual(fs.readFileSync(path.join(f.output,'account-20261029-1530-02.jpg')),f.expected(f.sources.fps30,.5,true));f.clean();
- const before=fs.readdirSync(f.output).sort(), beforeClips=fs.readdirSync(f.clipOutput).sort();
+ const before=fs.readdirSync(f.output).sort(), beforeClips=[];
  for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const broken=f.run(undefined,{}, {FRAME_BEHAVIOR:'broken'});assert.equal(broken.status,1);assert.match(broken.stdout,/Başarılı çift: 0 \| Tekrarlanan: 0 \| Başarısız: 1/);assert.match(broken.stderr,/JPG oluşturulamadı veya doğrulanamadı/);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
  for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const signal=f.run(undefined,{}, {FRAME_BEHAVIOR:'signal'});assert.notEqual(signal.status,0);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
  const realMv=execFileSync('which',['mv'],{encoding:'utf8'}).trim(),moveCount=path.join(f.root,'mv-count');
