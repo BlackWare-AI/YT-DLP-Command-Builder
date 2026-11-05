@@ -234,25 +234,17 @@ def main():
                 assert not list(frame_prefix.glob('tmp/ytdlp-frame.*'))
                 assert not (frame_home/'missing').exists()
                 print(f'PASS: Frame + SClip actual yt-dlp section download, silent ~1 s MP4, matching JPG and cleanup ({engine})')
+                if engine == 'experimental': clip.unlink()
 
-            # Frame + SClip must use real yt-dlp section downloading, then hash-skip the same clip on repeat.
-            frame_data['settings']['mode']='frame_sclip'
-            frame_cmd=run(['node','-e',frame_script,json.dumps(frame_data)],cwd=ROOT,text=True).stdout
-            frame_before=len(list(frame_output.glob('*.jpg')))
-            result=run(['bash','-c',frame_cmd],env={**env,'HOME':str(frame_home),'PREFIX':str(frame_prefix),'PYTHONPATH':pythonpath,'FIXTURE_FRAME':'1','TMPDIR':str(frame_home/'missing'/'tmp')},text=True)
-            sclip_output=output/'SClip';sclip_files=list(sclip_output.glob('*'))
-            assert len(sclip_files)==1,result.stdout
-            assert len(list(frame_output.glob('*.jpg')))==frame_before+1,result.stdout
-            clip_meta=probe(sclip_files[0]);assert clip_meta['streams'][0]['codec_name']=='h264'
-            assert 0.8 <= float(clip_meta['format']['duration']) <= 1.2
-            assert 'Başarılı çift: 1 | Tekrarlanan: 0 | Başarısız: 0' in result.stdout,result.stdout
-            saved_clip=sclip_files[0].read_bytes();saved_jpgs=sorted(p.name for p in frame_output.glob('*.jpg'))
-            result=run(['bash','-c',frame_cmd],env={**env,'HOME':str(frame_home),'PREFIX':str(frame_prefix),'PYTHONPATH':pythonpath,'FIXTURE_FRAME':'1','TMPDIR':str(frame_home/'missing'/'tmp')},text=True)
-            assert 'Başarılı çift: 0 | Tekrarlanan: 1 | Başarısız: 0' in result.stdout,result.stdout
-            assert len(list(sclip_output.glob('*')))==1 and sclip_files[0].read_bytes()==saved_clip
-            assert sorted(p.name for p in frame_output.glob('*.jpg'))==saved_jpgs
-            assert not list(frame_prefix.glob('tmp/ytdlp-frame.*'))
-            print('PASS: real yt-dlp *0-1 section download, matched SClip/JPG output, and repeat SHA-256 skip')
+            # Re-run the normal-engine command: the saved clip must be hash-skipped.
+            before_repeat_frames={p.name for p in frame_output.glob('*.jpg')}
+            normal_clip_bytes=clip.read_bytes()
+            repeat_result=run(['bash','-c',paired_cmd],env={**env,'HOME':str(frame_home),'PREFIX':str(frame_prefix),'PYTHONPATH':pythonpath,'FIXTURE_FRAME':'1','TMPDIR':str(frame_home/'missing'/'tmp')},text=True)
+            assert 'Başarılı çift: 0 | Tekrarlanan: 1 | Başarısız: 0' in repeat_result.stdout,repeat_result.stdout
+            assert len(list(sclip_output.glob('*.mp4')))==1 and clip.read_bytes()==normal_clip_bytes
+            assert {p.name for p in frame_output.glob('*.jpg')}==before_repeat_frames
+            print('PASS: real yt-dlp repeated Frame + SClip content is skipped by SHA-256')
+
         except subprocess.CalledProcessError as e:
             print(e.stdout); raise
         finally: server.shutdown()
