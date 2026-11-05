@@ -61,13 +61,16 @@ function frameFixture(t) {
   const file=path.join(root,name+'.mkv');execFileSync('ffmpeg',['-nostdin','-v','error','-f','lavfi','-i',`testsrc2=size=96x64:rate=${rate}:duration=${duration}`,'-c:v','ffv1',file]);sources[name]=file;
  }
  sources.vfr=path.join(root,'vfr.mkv');execFileSync('ffmpeg',['-nostdin','-v','error','-f','lavfi','-i','testsrc2=size=96x64:rate=10:duration=1','-vf',"select='eq(n,0)+eq(n,2)+eq(n,4)+eq(n,9)'",'-fps_mode','vfr','-c:v','ffv1',sources.vfr]);
- fs.writeFileSync(path.join(bin,'yt-dlp'),`#!/usr/bin/env bash\nset -u\nURL= OUT=\nwhile (($#)); do case "$1" in -P) OUT=$2; shift 2;; --download-sections) [[ "$2" == "*0-1" ]] || exit 9; shift 2;; -f) [[ "$2" == bv ]] || exit 8; shift 2;; --) shift; URL=$1; shift;; *) shift;; esac; done\nprintf '%s\\n' "$URL" >> "$FRAME_LOG"\n[[ "$URL" == *bad* ]] && exit 1\n[[ "$URL" == *empty* ]] && exit 0\nSOURCE="$FRAME_ROOT/$FRAME_KIND.mkv"\n[[ "$URL" != *short* ]] || SOURCE="$FRAME_ROOT/short.mkv"\ncp -- "$SOURCE" "$OUT/account-20261029-1530-01.mkv"\nif [[ "$URL" == *multi* ]]; then cp -- "$SOURCE" "$OUT/account-20261029-1530-02.mkv"; fi\n`,{mode:0o755});
+ fs.writeFileSync(path.join(bin,'yt-dlp'),`#!/usr/bin/env bash\nset -u\nURL= OUT=\nwhile (($#)); do case "$1" in -P) OUT=$2; shift 2;; --download-sections) [[ "$2" == "*0-1" ]] || exit 9; shift 2;; -f) [[ "$2" == bv ]] || exit 8; shift 2;; --) shift; URL=$1; shift;; *) shift;; esac; done\nprintf '%s\\n' "$URL" >> "$FRAME_LOG"\n[[ "$URL" == *bad* ]] && exit 1\n[[ "$URL" == *empty* ]] && exit 0\nif [[ "$URL" == *mixed* ]]; then cp -- "$FRAME_ROOT/fps30.mkv" "$OUT/duplicate-item.mkv"; cp -- "$FRAME_ROOT/fps24.mkv" "$OUT/new-item.mkv"; exit 0; fi\nSOURCE="$FRAME_ROOT/$FRAME_KIND.mkv"\n[[ "$URL" != *short* ]] || SOURCE="$FRAME_ROOT/short.mkv"\ncp -- "$SOURCE" "$OUT/account-20261029-1530-01.mkv"\nif [[ "$URL" == *multi* ]]; then cp -- "$SOURCE" "$OUT/account-20261029-1530-02.mkv"; fi\n`,{mode:0o755});
  fs.copyFileSync(path.join(bin,'yt-dlp'),path.join(tools,'yt-dlp'));
+ const shaScript="#!/usr/bin/env bash\nif [[ \"${SHA_FAIL:-0}\" == 1 ]]; then exit 1; fi\nif [[ \"${SHA_FAIL_AFTER_SOURCE:-0}\" == 1 ]]; then n=0; [[ -f \"$SHA_COUNTER\" ]] && read -r n < \"$SHA_COUNTER\"; n=$((n+1)); printf \"%s\" \"$n\" > \"$SHA_COUNTER\"; [[ \"$n\" -ge 2 ]] && exit 1; fi\nexec REAL_SHA256SUM \"$@\"\n";
+ const realSha=execFileSync('which',['sha256sum'],{encoding:'utf8'}).trim();
+ fs.writeFileSync(path.join(tools,'sha256sum'),shaScript.replace('REAL_SHA256SUM',B.quote(realSha)),{mode:0o755});
  const real=execFileSync('which',['ffmpeg'],{encoding:'utf8'}).trim();
  fs.writeFileSync(path.join(tools,'ffmpeg'),`#!/usr/bin/env bash\nif [[ " $* " == *" -q:v 1 "* ]]; then\n if [[ "\${FRAME_BEHAVIOR:-}" == signal ]]; then kill -TERM "$PPID"; exit 1; fi\n if [[ "\${FRAME_BEHAVIOR:-}" == broken ]]; then printf broken > "\${@: -1}"; exit 0; fi\n if [[ "\${FRAME_BEHAVIOR:-}" == fallback && " $* " == *" -vf "* ]]; then exit 0; fi\n printf '%s\\n' encode >> "$FRAME_ENCODINGS"\nfi\nexec ${B.quote(real)} "$@"\n`,{mode:0o755});
  const output=path.join(home,'storage/shared/Download/Apps/YT-DLPTemp/Frame');
  const clipOutput=path.join(home,'storage/shared/Download/Apps/YT-DLPTemp/SClip');
- const env={...process.env,HOME:home,PREFIX:prefix,TMPDIR:path.join(root,'missing','tmp'),PATH:tools+path.delimiter+process.env.PATH,FRAME_ROOT:root,FRAME_KIND:'fps30',FRAME_LOG:path.join(root,'urls.log'),FRAME_ENCODINGS:path.join(root,'encodings.log')};
+ const env={...process.env,HOME:home,PREFIX:prefix,TMPDIR:path.join(root,'missing','tmp'),PATH:tools+path.delimiter+process.env.PATH,FRAME_ROOT:root,FRAME_KIND:'fps30',FRAME_LOG:path.join(root,'urls.log'),FRAME_ENCODINGS:path.join(root,'encodings.log'),SHA_COUNTER:path.join(root,'sha-count')};
  function build(links='https://instagram.com/stories/account/123',settings={}) {return B.build({links,settings:{mode:'frame_sclip',cookies:'$HOME/cookies with $ literal.txt',requests:'0',min:'0',max:'0',...settings}}).command;}
  function run(links,settings={},extra={}) {const command=build(links,settings);execFileSync('bash',['-n'],{input:command});const result=spawnSync('bash',['-c',command],{env:{...env,...extra},encoding:'utf8',timeout:20000});assert.doesNotMatch((result.stdout||'')+(result.stderr||''),/Overwrite|Press Enter|\[y\/N\]|\[Y\/n\]/i);return result;}
  function clean() {
@@ -89,16 +92,16 @@ test('Frame + SClip produces a matching SClip and nearest JPG at 1/24/30/60 FPS 
  assert.ok(command.includes('SClip'));
  assert.match(command,/^bash -c '/);assert.match(command,/--no-overwrites -f "bv" --download-sections "\*0-1"/);
  assert.match(command,/-q:v 1 -pix_fmt yuvj444p/);assert.match(command,/trap cleanup EXIT/);
- assert.doesNotMatch(command,/FRAME_TIME|\bawk\b|show_entries frame|\bread\b|force-keyframes|compression_level|\.png/);
+ assert.doesNotMatch(command,/FRAME_TIME|\bawk\b|show_entries frame|force-keyframes|compression_level|\.png/);assert.match(command,/read -r -d/);
  assert.equal(B.defaults.frameTime,'0.5');assert.match(command,/prev_selected_t/);
  let count=0;
  for(const [kind,target] of [['one',.5],['fps24',.5],['fps30',.5],['fps60',.5],['short',.5],['vfr',.5],['fps30',.51],['fps30',.52],['short',.85]]) {
   const settings=target===.5 ? {} : {frameTime:'custom',frameCustomTime:String(target)};
-  const result=f.run(undefined,settings,{FRAME_KIND:kind});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Başarısız: 0/);
+  const result=f.run(undefined,settings,{FRAME_KIND:kind});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 0 \| Başarısız: 0/);
   const file=path.join(f.output,`account-20261029-1530-${String(++count).padStart(2,'0')}.jpg`);
   assert.deepEqual(fs.readFileSync(file),f.expected(f.sources[kind],target),kind+' nearest frame, source dimensions, one JPG encoding');
   const clip=path.join(f.clipOutput,`account-20261029-1530-${String(count).padStart(2,'0')}.mkv`);
-  assert.deepEqual(fs.readFileSync(clip),fs.readFileSync(f.sources[kind]),kind+' same downloaded one-second clip is retained in SClip');
+  assert.deepEqual(fs.readFileSync(clip),fs.readFileSync(f.sources[kind]),kind+' same downloaded one-second clip is retained in SClip');fs.rmSync(clip);
   const meta=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-of','json',file],{encoding:'utf8'})).streams[0];assert.equal(meta.pix_fmt,'yuvj444p');assert.deepEqual([meta.width,meta.height],[96,64]);f.clean();
  }
  assert.equal(fs.readFileSync(f.env.FRAME_ENCODINGS,'utf8').trim().split('\n').length,count,'one JPEG encode per successful item');
@@ -110,34 +113,74 @@ test('Frame + SClip retains the original downloaded clip with VP9 ICC stream sid
  const old=execFileSync('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-of','csv=s=x:p=0',source],{encoding:'utf8'}).trim();
  assert.notEqual(old,'96x64','fixture exercises ICC side-data CSV decoration');
  const result=f.run(undefined,{}, {FRAME_KIND:'icc'});
- assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Başarısız: 0/);
+ assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 0 \| Başarısız: 0/);
  const jpg=path.join(f.output,'account-20261029-1530-01.jpg');
  assert.deepEqual(fs.readFileSync(jpg),f.expected(source,.5));
  assert.deepEqual(fs.readFileSync(path.join(f.clipOutput,'account-20261029-1530-01.mkv')),fs.readFileSync(source));
  assert.equal(fs.readFileSync(f.env.FRAME_ENCODINGS,'utf8').trim().split('\n').length,1);f.clean();
 });
-test('Frame + SClip produces eight matching JPG/SClip pairs and preserve existing files',{skip:!ffmpegAvailable},t=>{
+test('Frame + SClip skips repeated bytes and preserves existing files',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);fs.mkdirSync(f.output,{recursive:true});fs.mkdirSync(f.clipOutput,{recursive:true});
  const prior=path.join(f.output,'account-20261029-1530-01.jpg');fs.writeFileSync(prior,'existing user JPG');
  const priorClip=path.join(f.clipOutput,'account-20261029-1530-01.mkv');fs.writeFileSync(priorClip,'existing user clip');
  const links=Array.from({length:8},(_,i)=>`https://instagram.com/stories/account/${100+i}`).join(' ');
- const result=f.run(links);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 8 \| Başarısız: 0/);
- assert.equal(fs.readdirSync(f.output).length,9);assert.equal(fs.readdirSync(f.clipOutput).length,9);
- assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
- const again=f.run(links);assert.equal(again.status,0,again.stderr);assert.equal(fs.readdirSync(f.output).length,17);assert.equal(fs.readdirSync(f.clipOutput).length,17);assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
- const multi=f.run('https://instagram.com/stories/multi/123');assert.equal(multi.status,0,multi.stderr);assert.match(multi.stdout,/Başarılı çift: 1/);assert.equal(fs.readdirSync(f.output).length,18);assert.equal(fs.readdirSync(f.clipOutput).length,18);f.clean();
+ const result=f.run(links);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 7 \| Başarısız: 0/);
+ assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);
+ assert.ok(fs.existsSync(path.join(f.output,'account-20261029-1530-02.jpg')));assert.ok(fs.existsSync(path.join(f.clipOutput,'account-20261029-1530-02.mkv')));assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
+ const again=f.run(links);assert.equal(again.status,0,again.stderr);assert.match(again.stdout,/Başarılı çift: 0 \| Tekrarlanan: 8 \| Başarısız: 0/);assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
+ const multi=f.run('https://instagram.com/stories/multi/123');assert.equal(multi.status,0,multi.stderr);assert.match(multi.stdout,/Başarılı çift: 0 \| Tekrarlanan: 2 \| Başarısız: 0/);assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);f.clean();
  const blocked=path.join(f.root,'prefix-file');fs.writeFileSync(blocked,'keep');
- const fallback=f.run(undefined,{}, {PREFIX:blocked});assert.equal(fallback.status,0,fallback.stderr);assert.equal(fs.readFileSync(blocked,'utf8'),'keep');assert.deepEqual(fs.readdirSync(path.join(f.home,'.cache/yt-dlp-frame')),[]);f.clean();
+ for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const fallback=f.run(undefined,{}, {PREFIX:blocked});assert.equal(fallback.status,0,fallback.stderr);assert.equal(fs.readFileSync(blocked,'utf8'),'keep');assert.deepEqual(fs.readdirSync(path.join(f.home,'.cache/yt-dlp-frame')),[]);f.clean();
+});
+test('Frame Only ignores the SClip duplicate list and preserves JPG-only behavior',{skip:!ffmpegAvailable},t=>{
+ const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
+ fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'same-video-different-name.mkv'));
+ const command=f.build(undefined,{mode:'frame'});
+ assert.doesNotMatch(command,/sha256sum|find_duplicate_clip|SCLIP_DIR|DUPLICATES/);
+ const result=f.run(undefined,{mode:'frame'});assert.equal(result.status,0,result.stderr);
+ assert.match(result.stdout,/Başarılı JPG: 1 \| Başarısız JPG: 0/);
+ assert.deepEqual(fs.readdirSync(f.output),['account-20261029-1530-01.jpg']);
+ assert.deepEqual(fs.readdirSync(f.clipOutput),['same-video-different-name.mkv']);f.clean();
+});
+test('Frame + SClip skips identical bytes even when the saved filename differs',{skip:!ffmpegAvailable},t=>{
+ const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
+ fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'renamed-existing-video.mkv'));
+ const result=f.run();assert.equal(result.status,0,result.stderr);
+ assert.match(result.stdout,/Başarılı çift: 0 \| Tekrarlanan: 1 \| Başarısız: 0/);
+ assert.equal(fs.readdirSync(f.output).length,0);
+ assert.deepEqual(fs.readdirSync(f.clipOutput),['renamed-existing-video.mkv']);f.clean();
+});
+test('Frame continues after a duplicate video within the same URL and saves later new content',{skip:!ffmpegAvailable},t=>{
+ const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
+ fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'old-name.mkv'));
+ const result=f.run('https://instagram.com/stories/account/mixed');
+ assert.equal(result.status,0,result.stderr);
+ assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 1 \| Başarısız: 0/);
+ assert.deepEqual(fs.readdirSync(f.output),['new-01.jpg']);
+ assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),['new-01.mkv','old-name.mkv']);f.clean();
+});
+test('Frame counts source and existing-SClip SHA-256 read errors as failures without saving',{skip:!ffmpegAvailable},t=>{
+ const f=frameFixture(t);
+ const sourceFailure=f.run(undefined,{}, {SHA_FAIL:1});
+ assert.equal(sourceFailure.status,1,sourceFailure.stderr);
+ assert.match(sourceFailure.stdout,/Başarılı çift: 0 \| Tekrarlanan: 0 \| Başarısız: 1/);
+ assert.equal(fs.readdirSync(f.output).length,0);assert.equal(fs.readdirSync(f.clipOutput).length,0);
+ fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'existing-video.mkv'));
+ fs.rmSync(f.env.SHA_COUNTER,{force:true});
+ const existingFailure=f.run(undefined,{}, {SHA_FAIL_AFTER_SOURCE:1});
+ assert.equal(existingFailure.status,1,existingFailure.stderr);
+ assert.match(existingFailure.stdout,/Başarılı çift: 0 \| Tekrarlanan: 0 \| Başarısız: 1/);
+ assert.deepEqual(fs.readdirSync(f.output),[]);assert.deepEqual(fs.readdirSync(f.clipOutput),['existing-video.mkv']);f.clean();
 });
 test('Frame + SClip keeps only complete JPG/SClip pairs and cleans failures and fallbacks',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);
  const result=f.run('https://instagram.com/stories/bad/1 https://instagram.com/stories/empty/2 https://instagram.com/stories/account/3');
- assert.equal(result.status,1);assert.match(result.stdout,/Başarılı çift: 1 \| Başarısız: 2/);assert.match(result.stderr,/stories\/bad\/1 — indirme başarısız/);assert.match(result.stderr,/stories\/empty\/2 — video bulunamadı/);f.clean();
- const fallback=f.run(undefined,{}, {FRAME_BEHAVIOR:'fallback'});assert.equal(fallback.status,0,fallback.stderr);
+ assert.equal(result.status,1);assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 0 \| Başarısız: 2/);assert.match(result.stderr,/stories\/bad\/1 — indirme başarısız/);assert.match(result.stderr,/stories\/empty\/2 — video bulunamadı/);f.clean();
+ for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const fallback=f.run(undefined,{}, {FRAME_BEHAVIOR:'fallback'});assert.equal(fallback.status,0,fallback.stderr);
  assert.deepEqual(fs.readFileSync(path.join(f.output,'account-20261029-1530-02.jpg')),f.expected(f.sources.fps30,.5,true));f.clean();
- const before=fs.readdirSync(f.output).sort(), beforeClips=fs.readdirSync(f.clipOutput).sort();
- const broken=f.run(undefined,{}, {FRAME_BEHAVIOR:'broken'});assert.equal(broken.status,1);assert.match(broken.stdout,/Başarılı çift: 0 \| Başarısız: 1/);assert.match(broken.stderr,/JPG oluşturulamadı veya doğrulanamadı/);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
- const signal=f.run(undefined,{}, {FRAME_BEHAVIOR:'signal'});assert.notEqual(signal.status,0);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
+ const before=fs.readdirSync(f.output).sort(), beforeClips=[];
+ for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const broken=f.run(undefined,{}, {FRAME_BEHAVIOR:'broken'});assert.equal(broken.status,1);assert.match(broken.stdout,/Başarılı çift: 0 \| Tekrarlanan: 0 \| Başarısız: 1/);assert.match(broken.stderr,/JPG oluşturulamadı veya doğrulanamadı/);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
+ for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const signal=f.run(undefined,{}, {FRAME_BEHAVIOR:'signal'});assert.notEqual(signal.status,0);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
  const realMv=execFileSync('which',['mv'],{encoding:'utf8'}).trim(),moveCount=path.join(f.root,'mv-count');
  fs.writeFileSync(path.join(f.tools,'mv'),`#!/usr/bin/env bash
 n=0
@@ -147,7 +190,7 @@ printf '%s' "$n" > '${moveCount}'
 [[ "$n" -eq 2 ]] && exit 1
 exec ${B.quote(realMv)} "$@"
 `,{mode:0o755});
- const publish=f.run();assert.equal(publish.status,1);assert.match(publish.stderr,/JPG veya SClip hedef klasöre aktarılamadı/);
+ for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const publish=f.run();assert.equal(publish.status,1);assert.match(publish.stderr,/JPG veya SClip hedef klasöre aktarılamadı/);
  assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
 });
 test('Frame migrates removed A/B and times, preserves Story selection, and validates custom time',()=>{
@@ -350,7 +393,7 @@ test('English changes only Frame messages and leaves download options and paths 
 test('English Frame + SClip translates paired-output messages and keeps the same command structure',()=>{
  const original=input({mode:'frame_sclip',cookies:'$HOME/Türkçe/cookies.txt'});
  const tr=B.build(original).command,en=B.build({...original,language:'en'}).command;
- assert.match(en,/Successful pairs: %d \| Failed: %d/);assert.doesNotMatch(en,/Başarılı çift:|Başarısız:/);
+ assert.match(en,/Successful pairs: %d \| Duplicates: %d \| Failed: %d/);assert.doesNotMatch(en,/Başarılı çift:|Başarısız:/);
  assert.match(en,/CLIP_OUT=/);assert.match(en,/-q:v 1 -pix_fmt yuvj444p/);
  assert.equal(spawnSync('bash',['-n','-c',en]).status,0);
  const messages=[
@@ -358,12 +401,14 @@ test('English Frame + SClip translates paired-output messages and keeps the same
   ['geçici klasör oluşturulamadı','could not create temporary directory'],
   ['indirme başarısız','download failed'],
   ['video bulunamadı','video not found'],
+  ['SHA-256 özeti okunamadı','could not read SHA-256 hash'],
+  ['SClip dosyaları okunamadı veya hash alınamadı','could not read or hash existing SClip files'],
   ['kaynak çözünürlüğü okunamadı','could not read source dimensions'],
   ['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],
   ['JPG veya SClip hedef klasöre aktarılamadı','could not publish JPG or SClip to output folders'],
-  ['Başarılı çift: %d | Başarısız: %d','Successful pairs: %d | Failed: %d']
+  ['Başarılı çift: %d | Tekrarlanan: %d | Başarısız: %d','Successful pairs: %d | Duplicates: %d | Failed: %d']
  ];
- let expected=tr;for(const [a,b] of messages)expected=expected.replace(a,b);
+  let expected=tr;for(const [a,b] of messages)expected=expected.split(a).join(b);
  assert.equal(en,expected);
 });
 test('daily notes accumulate unique cleaned links, retain deletions and update annotations',()=>{
