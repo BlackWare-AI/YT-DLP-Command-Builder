@@ -239,7 +239,627 @@
       throw Error('Frame zamanı 0 ile 1 saniye arasında olmalı.');
     return String(Number(raw));
   }
+  function buildFrameOnlyCommand(settings, urls, items, min, max, req, cookies, language, keepClip) {
+    const message=(tr,en)=>language==='en' ? en : tr;
+    const target=frameTimestamp(settings);
+    // Keep every improving candidate, then take the last one: the global nearest frame.
+    // Selection, timestamp normalization and reverse leave source pixels untouched.
+    const filter="setpts=PTS-STARTPTS,select='isnan(prev_selected_t)+lt(abs(t-"+target+"),abs(prev_selected_t-"+target+"))',reverse,select='eq(n,0)'";
+    const lines=[
+      "#!/usr/bin/env bash",
+      "set -u",
+      'YTDLP=('+(settings.engine==='normal' ? 'yt-dlp' : shellPath('$HOME/yt-dlp-story-test/bin/yt-dlp'))+')',
+      "COMMON=(--ignore-config --no-playlist)",
+      cookies ? 'COOKIES=(--cookies '+cookies+')' : 'COOKIES=()',
+      items ? 'SELECT=(--playlist-items '+quote(items)+')' : 'SELECT=()',
+      'SLEEP=(--sleep-requests '+req+' --sleep-interval '+min+' --max-sleep-interval '+max+')',
+      'OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/Frame'),
+      ...(keepClip ? ['CLIP_OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip')] : []),
+      'FILTER='+quote(filter),
+      'URLS=('+urls.map(quote).join(' ')+')',
+      "command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1 || { printf '%s\\n' '"+message("FFmpeg bulunamadı. Termux: pkg install ffmpeg","FFmpeg not found. Termux: pkg install ffmpeg")+"' >&2; exit 127; }",
+      keepClip ? "mkdir -p -- \"$OUT\" \"$CLIP_OUT\" || exit 1" : "mkdir -p -- \"$OUT\" || exit 1",
+      "PRIVATE_BASE=${PREFIX:-$HOME/.cache}/tmp",
+      "if ! mkdir -p -- \"$PRIVATE_BASE\" 2>/dev/null || [[ ! -w \"$PRIVATE_BASE\" ]]; then",
+      "  PRIVATE_BASE=\"$HOME/.cache/yt-dlp-frame\"",
+      "  mkdir -p -- \"$PRIVATE_BASE\" || exit 1",
+      "fi",
+      "RUN_TMP=$(mktemp -d \"$PRIVATE_BASE/ytdlp-frame.XXXXXX\") || exit 1",
+      "PUBLISH_TMP=\"\"",
+      ...(keepClip ? ["CLIP_PUBLISH_TMP=\"\""] : []),
+      "cleanup() {",
+      "  [[ -z \"$PUBLISH_TMP\" ]] || rm -rf -- \"$PUBLISH_TMP\"",
+      ...(keepClip ? ["  [[ -z \"$CLIP_PUBLISH_TMP\" ]] || rm -rf -- \"$CLIP_PUBLISH_TMP\""] : []),
+      "  rm -rf -- \"$RUN_TMP\"",
+      "}",
+      "trap cleanup EXIT",
+      "trap 'exit 130' HUP INT TERM",
+      "video_dimensions() {",
+      "  local SIZE",
+      "  SIZE=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of default=noprint_wrappers=1:nokey=1 \"$1\" 2>/dev/null) || return 1",
+      "  SIZE=${SIZE//
+    const message=(tr,en)=>language==='en' ? en : tr;
+    const target=frameTimestamp(settings);
+    // Keep every improving candidate, then take the last one: the global nearest frame.
+    // Selection, timestamp normalization and reverse leave source pixels untouched.
+    const filter="setpts=PTS-STARTPTS,select='isnan(prev_selected_t)+lt(abs(t-"+target+"),abs(prev_selected_t-"+target+"))',reverse,select='eq(n,0)'";
+    const lines=[
+      "#!/usr/bin/env bash",
+      "set -u",
+      'YTDLP=('+(settings.engine==='normal' ? 'yt-dlp' : shellPath('$HOME/yt-dlp-story-test/bin/yt-dlp'))+')',
+      "COMMON=(--ignore-config --no-playlist)",
+      cookies ? 'COOKIES=(--cookies '+cookies+')' : 'COOKIES=()',
+      items ? 'SELECT=(--playlist-items '+quote(items)+')' : 'SELECT=()',
+      'SLEEP=(--sleep-requests '+req+' --sleep-interval '+min+' --max-sleep-interval '+max+')',
+      'OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/Frame'),
+      'SCLIP_DIR='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip'),
+      ...(keepClip ? ['CLIP_OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip')] : []),
+      'FILTER='+quote(filter),
+      'URLS=('+urls.map(quote).join(' ')+')',
+      "command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1 || { printf '%s\\n' '"+message("FFmpeg bulunamadı. Termux: pkg install ffmpeg","FFmpeg not found. Termux: pkg install ffmpeg")+"' >&2; exit 127; }",
+      "command -v sha256sum >/dev/null 2>&1 || { printf '%s\\n' 'SHA-256 utility not found (sha256sum).'; exit 127; }",
+      keepClip ? "mkdir -p -- \"$OUT\" \"$CLIP_OUT\" || exit 1" : "mkdir -p -- \"$OUT\" || exit 1",
+      "PRIVATE_BASE=${PREFIX:-$HOME/.cache}/tmp",
+      "if ! mkdir -p -- \"$PRIVATE_BASE\" 2>/dev/null || [[ ! -w \"$PRIVATE_BASE\" ]]; then",
+      "  PRIVATE_BASE=\"$HOME/.cache/yt-dlp-frame\"",
+      "  mkdir -p -- \"$PRIVATE_BASE\" || exit 1",
+      "fi",
+      "RUN_TMP=$(mktemp -d \"$PRIVATE_BASE/ytdlp-frame.XXXXXX\") || exit 1",
+      "PUBLISH_TMP=\"\"",
+      ...(keepClip ? ["CLIP_PUBLISH_TMP=\"\""] : []),
+      "cleanup() {",
+      "  [[ -z \"$PUBLISH_TMP\" ]] || rm -rf -- \"$PUBLISH_TMP\"",
+      ...(keepClip ? ["  [[ -z \"$CLIP_PUBLISH_TMP\" ]] || rm -rf -- \"$CLIP_PUBLISH_TMP\""] : []),
+      "  rm -rf -- \"$RUN_TMP\"",
+      "}",
+      "trap cleanup EXIT",
+      "trap 'exit 130' HUP INT TERM",
+      "video_dimensions() {",
+      "  local SIZE",
+      "  SIZE=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of default=noprint_wrappers=1:nokey=1 \"$1\" 2>/dev/null) || return 1",
+      "  SIZE=${SIZE//$'\\n'/x}",
+      "  [[ \"$SIZE\" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || return 1",
+      "  printf '%s\\n' \"$SIZE\"",
+      "}",
+      "source_dimensions() {",
+      "  local SIZE ORIENTATION ROTATION",
+      "  SIZE=$(video_dimensions \"$1\") || return 1",
+      "  ORIENTATION=$(ffprobe -v error -select_streams v:0 -show_entries stream_tags=rotate:stream_side_data=rotation -of default=noprint_wrappers=1 \"$1\" 2>/dev/null) || return 1",
+      "  case \"$ORIENTATION\" in",
+      "    *rotation=*) ROTATION=${ORIENTATION##*rotation=};;",
+      "    *TAG:rotate=*) ROTATION=${ORIENTATION##*TAG:rotate=};;",
+      "    *) ROTATION=0;;",
+      "  esac",
+      "  ROTATION=${ROTATION%%$'\\n'*}",
+      "  case \"$ROTATION\" in",
+      "    90|-90|270|-270|90.0*|-90.0*|270.0*|-270.0*) SIZE=\"${SIZE#*x}x${SIZE%x*}\";;",
+      "  esac",
+      "  printf '%s\\n' \"$SIZE\"",
+      "}",
+      "valid_jpg() {",
+      "  [[ -s \"$JPG\" ]] || return 1",
+      "  ffmpeg -hide_banner -loglevel error -nostdin -y -xerror -i \"$JPG\" -frames:v 1 -f null - >/dev/null 2>&1 || return 1",
+      "  DIMENSIONS=$(video_dimensions \"$JPG\") || return 1",
+      "  [[ \"$DIMENSIONS\" == \"$SOURCE_DIMENSIONS\" ]]",
+      "}",
+      "hash_file() {",
+      "  local VALUE",
+      "  VALUE=$(sha256sum < \"$1\" 2>/dev/null) || return 1",
+      "  VALUE=${VALUE%% *}",
+      "  [[ \"$VALUE\" =~ ^[[:xdigit:]]{64}$ ]] || return 1",
+      "  printf '%s\\n' \"$VALUE\"",
+      "}",
+      "find_duplicate_clip() {",
+      "  local EXPECTED=\"$1\" EXISTING EXISTING_HASH",
+      "  [[ -e \"$SCLIP_DIR\" ]] || return 1",
+      "  [[ -d \"$SCLIP_DIR\" && -r \"$SCLIP_DIR\" && -x \"$SCLIP_DIR\" ]] || return 2",
+      "  find \"$SCLIP_DIR\" -maxdepth 1 -type f -print0 > \"$ITEM_TMP/sclip-files.nul\" 2>/dev/null || return 2",
+      "  while IFS= read -r -d '' EXISTING; do",
+      "    EXISTING_HASH=$(hash_file \"$EXISTING\") || return 2",
+      "    [[ \"$EXISTING_HASH\" == \"$EXPECTED\" ]] && return 0",
+      "  done < \"$ITEM_TMP/sclip-files.nul\"",
+      "  return 1",
+      "}",
+      "SUCCESS=0",
+      "DUPLICATES=0",
+      "FAILURES=0",
+      "ERRORS=()",
+      "FIRST_URL=1",
+      "for URL in \"${URLS[@]}\"; do",
+      '  if [[ $FIRST_URL -eq 0 ]]; then sleep '+min+'; fi',
+      "  FIRST_URL=0",
+      "  ITEM_TMP=$(mktemp -d \"$RUN_TMP/item.XXXXXX\") || { FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — "+message("geçici klasör oluşturulamadı","could not create temporary directory")+"\"); continue; }",
+      "  META_ARGS=()",
+      '  if [[ "$URL" =~ ^https://www\\.instagram\\.com/stories/([^/?#]+) ]]; then META_ARGS=(--parse-metadata '+quote(storyMetadata)+'); fi',
+      '  "${YTDLP[@]}" "${COMMON[@]}" "${COOKIES[@]}" "${SLEEP[@]}" "${SELECT[@]}" "${META_ARGS[@]}" --no-overwrites -f "bv" --download-sections "*0-1" -P "$ITEM_TMP" -o '+quote(template())+' -- "$URL"',
+      "  if [[ $? -ne 0 ]]; then",
+      "    FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — "+message("indirme başarısız","download failed")+"\")",
+      "    rm -rf -- \"$ITEM_TMP\"; continue",
+      "  fi",
+      "  VIDEO_FOUND=0",
+      "  URL_FAILURES=0",
+      "  URL_ERRORS=()",
+      "  for VIDEO in \"$ITEM_TMP\"/*; do",
+      "    [[ -f \"$VIDEO\" ]] || continue",
+      "    case \"$VIDEO\" in *.part|*.ytdl|*.jpg|*.json) continue;; esac",
+      "    VIDEO_FOUND=1",
+      "    SAVED=0",
+      "    REASON='SHA-256 özeti alınamadı / hash could not be read'",
+      "    SOURCE_HASH=$(hash_file \"$VIDEO\") || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    find_duplicate_clip \"$SOURCE_HASH\"",
+      "    DUPLICATE_STATUS=$?",
+      "    if [[ $DUPLICATE_STATUS -eq 0 ]]; then DUPLICATES=$((DUPLICATES+1)); continue; fi",
+      "    if [[ $DUPLICATE_STATUS -ne 1 ]]; then",
+      "      REASON='SClip dosyaları okunamadı veya hash alınamadı / existing SClip files could not be read or hashed'",
+      "      URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue",
+      "    fi",
+      "    REASON='"+message("kaynak çözünürlüğü okunamadı","could not read source dimensions")+"'",
+      "    SOURCE_DIMENSIONS=$(source_dimensions \"$VIDEO\") || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    [[ \"$SOURCE_DIMENSIONS\" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    JPG=\"$ITEM_TMP/frame.jpg\"",
+      "    REASON='"+message("JPG oluşturulamadı veya doğrulanamadı","could not create or verify JPG")+"'",
+      "    if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -vf \"$FILTER\" -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || ! valid_jpg; then",
+      "      rm -f -- \"$JPG\"",
+      "      if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || ! valid_jpg; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; fi",
+      "      valid_jpg || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    fi",
+      ...(keepClip ? [
+        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}; EXT=${VIDEO##*.}",
+        "    REASON='"+message("JPG veya SClip hedef klasöre aktarılamadı","could not publish JPG or SClip to output folders")+"'",
+      "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    CLIP_PUBLISH_TMP=$(mktemp -d \"$CLIP_OUT/.sclip-publish.XXXXXX\") || { rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"; URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
+        "    CLIP_STAGED=\"$CLIP_PUBLISH_TMP/clip.$EXT\"",
+        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\" && cp -- \"$VIDEO\" \"$CLIP_STAGED\" && cmp -s -- \"$VIDEO\" \"$CLIP_STAGED\"; then",
+        "      SEQUENCE=1",
+        "      while :; do",
+        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"; CLIP_TARGET=\"$CLIP_OUT/$BASE-$SUFFIX.$EXT\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" || -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        mv -nT -- \"$CLIP_STAGED\" \"$CLIP_TARGET\" 2>/dev/null || break",
+        "        if [[ -e \"$CLIP_STAGED\" ]]; then",
+        "          if [[ -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "          break",
+        "        fi",
+        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || true",
+        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
+        "        rm -f -- \"$CLIP_TARGET\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        break",
+        "      done",
+        "    fi",
+        "    rm -rf -- \"$PUBLISH_TMP\" \"$CLIP_PUBLISH_TMP\"; PUBLISH_TMP=\"\"; CLIP_PUBLISH_TMP=\"\"",
+      ] : [
+        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}",
+        "    REASON='"+message("JPG hedef klasöre aktarılamadı","could not publish JPG to output folder")+"'",
+      "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
+        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\"; then",
+        "      SEQUENCE=1",
+        "      while :; do",
+        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || break",
+        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
+        "        [[ -e \"$TARGET\" || -L \"$TARGET\" ]] || break",
+        "        SEQUENCE=$((SEQUENCE+1))",
+        "      done",
+        "    fi",
+        "    rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"",
+      ]),
+      "    if [[ $SAVED -eq 0 ]]; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); fi",
+      "  done",
+      "  if [[ $VIDEO_FOUND -eq 0 ]]; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\\"$URL — "+message("video bulunamadı","video not found")+"\\"); fi",
+      "  FAILURES=$((FAILURES+URL_FAILURES))",
+      "  if [[ ${#URL_ERRORS[@]} -gt 0 ]]; then ERRORS+=(\"${URL_ERRORS[@]}\"); fi",
+      "  rm -rf -- \"$ITEM_TMP\"",
+      "done",
+      "cleanup",
+      "trap - EXIT HUP INT TERM",
+      "printf '"+message(keepClip ? "Başarılı çift: %d | Tekrarlanan: %d | Başarısız: %d" : "Başarılı JPG: %d | Tekrarlanan: %d | Başarısız JPG: %d", keepClip ? "Successful pairs: %d | Duplicates: %d | Failed: %d" : "Successful JPGs: %d | Duplicates: %d | Failed JPGs: %d")+"\\n' \"$SUCCESS\" \"$DUPLICATES\" \"$FAILURES\"",
+      "if [[ ${#ERRORS[@]} -gt 0 ]]; then printf '%s\\n' \"${ERRORS[@]}\" >&2; fi",
+      "[[ $FAILURES -eq 0 ]]"
+    ];
+    // A single, isolated Bash invocation also completes cleanup when pasted into Termux.
+    return "bash -c '"+lines.join('\n').replace(/'/g,"'\\''")+"'";
+  }
+  function removeUrl(text, target) {
+    const isTarget = part => parseUrls(part,true).includes(target);
+    // Preserve the draft around each representation of the selected canonical URL.
+    let remaining=String(text).replace(/(?:https?:\/\/|(?:www\.)?instagram\.com\/)(?:(?!https?:\/\/)[^\s<>"“”])+/gi,
+      part=>isTarget(part) ? '' : part);
+    remaining=remaining.replace(/(^|[\s(])((?:stories\/[\w.]+(?:\/\d+)?|(?:reel|p|tv)\/[\w-]+)\/?(?=$|[\s),;.!?])(?:\?[^\s<>"“”]*)?)/gi,
+      (match,prefix,part)=>isTarget(part) ? prefix : match);
+    remaining=remaining.replace(/^([^\r\n]*)$/gm,line=>{
+      if(normalizeBareUsernames(line)===line || !isTarget(line)) return line;
+      const match=line.match(bareUsernameLine);
+      return match[1]+match[3];
+    });
+    return remaining.trim();
+  }
+  function build(input) {
+    const s = {...defaults, ...input.settings};
+    delete s.audioFormat;
+    if (!['normal','experimental'].includes(s.engine) || !['av','video','audio','still','frame','frame_sclip'].includes(s.mode)) throw Error('Geçersiz motor veya biçim.');
+    const urls = parseUrls(input.links);
+    if (!urls.length) throw Error('En az bir Instagram içerik bağlantısı girin.');
+    const items = urls.some(collectionKind) ? selectionSpec(input.selection) : null;
+    const min = numeric(s.min, 'Sleep min'), max = numeric(s.max, 'Sleep max'), req = numeric(s.requests, 'Sleep requests');
+    if (max < min) throw Error('Sleep max, minimumdan küçük olamaz.');
+    shellPath(s.folder);
+    const outputSubdir = s.mode === 'audio' ? 'Audio' : s.mode === 'still' ? 'SClip' : 'Video';
+    const folder = ['frame','frame_sclip'].includes(s.mode) ? null : shellPath(s.folder.trim().replace(/\/+$/, '') + '/' + outputSubdir);
+    const cookies = s.cookies.trim() ? shellPath(s.cookies) : null;
+    const cuts = ['av','video'].includes(s.mode) ? (input.cuts || []).map(validateCut) :
+      s.mode === 'still' ? [{start:'0',end:'1'}] : [];
+    if(['frame','frame_sclip'].includes(s.mode)) return {command:buildFrameCommand(s,urls,items,min,max,req,cookies,input.language,s.mode==='frame_sclip'),urls,settings:s,cuts:[],selection:input.selection||{},commandCount:1};
+    const args = [s.engine === 'normal' ? 'yt-dlp' : shellPath('$HOME/yt-dlp-story-test/bin/yt-dlp'), '--ignore-config', '--no-playlist'];
+    if (items) args.push('--playlist-items ' + quote(items));
+    if (cookies) args.push('--cookies ' + cookies);
+    args.push('--sleep-requests ' + req, '--sleep-interval ' + min, '--max-sleep-interval ' + max,
+      s.overwrite ? '--no-overwrites' : '--force-overwrites');
+    if (s.mode === 'audio') {
+      args.push('-f ' + quote('ba/b'), '-x', '--audio-format best');
+      if (s.thumb) args.push('--embed-thumbnail', '--convert-thumbnails jpg');
+    } else if (s.mode === 'still' || s.mode === 'video') args.push('-f ' + quote('bv'));
+    else args.push('-f ' + quote('bv+ba/b'));
+    for (const cut of cuts) args.push('--download-sections ' + quote('*' + cut.start + '-' + cut.end));
+    if (urls.some(url=>/^https:\/\/www\.instagram\.com\/stories\//.test(url))) args.push('--parse-metadata ' + quote(storyMetadata));
+    args.push('-P ' + folder,
+      '-o ' + quote(template(s,cuts.length>0)), '--', ...urls.map(quote));
+    return {command:args.join(' \\\n  '), urls, settings:s,
+      cuts:['av','video'].includes(s.mode) ? cuts : [], selection:input.selection || {}, commandCount:1};
+  }
+  return {defaults, normalizeSettings, quote, shellPath, collectionKind, selectionSpec, normalizeBareUsernames, cleanNoteUrls, cleanNotes, mergeDailyNotes, spaceNoteGroups, noteSeparatorOffsets, countNoteLinks, parseUrls, removeUrl, validateCut, template, storyMetadata, build};
+});
+\\n'/x}",
+      "  [[ \"$SIZE\" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || return 1",
+      "  printf '%s\\n' \"$SIZE\"",
+      "}",
+      "source_dimensions() {",
+      "  local SIZE ORIENTATION ROTATION",
+      "  SIZE=$(video_dimensions \"$1\") || return 1",
+      "  ORIENTATION=$(ffprobe -v error -select_streams v:0 -show_entries stream_tags=rotate:stream_side_data=rotation -of default=noprint_wrappers=1 \"$1\" 2>/dev/null) || return 1",
+      "  case \"$ORIENTATION\" in",
+      "    *rotation=*) ROTATION=${ORIENTATION##*rotation=};;",
+      "    *TAG:rotate=*) ROTATION=${ORIENTATION##*TAG:rotate=};;",
+      "    *) ROTATION=0;;",
+      "  esac",
+      "  ROTATION=${ROTATION%%
+    const message=(tr,en)=>language==='en' ? en : tr;
+    const target=frameTimestamp(settings);
+    // Keep every improving candidate, then take the last one: the global nearest frame.
+    // Selection, timestamp normalization and reverse leave source pixels untouched.
+    const filter="setpts=PTS-STARTPTS,select='isnan(prev_selected_t)+lt(abs(t-"+target+"),abs(prev_selected_t-"+target+"))',reverse,select='eq(n,0)'";
+    const lines=[
+      "#!/usr/bin/env bash",
+      "set -u",
+      'YTDLP=('+(settings.engine==='normal' ? 'yt-dlp' : shellPath('$HOME/yt-dlp-story-test/bin/yt-dlp'))+')',
+      "COMMON=(--ignore-config --no-playlist)",
+      cookies ? 'COOKIES=(--cookies '+cookies+')' : 'COOKIES=()',
+      items ? 'SELECT=(--playlist-items '+quote(items)+')' : 'SELECT=()',
+      'SLEEP=(--sleep-requests '+req+' --sleep-interval '+min+' --max-sleep-interval '+max+')',
+      'OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/Frame'),
+      'SCLIP_DIR='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip'),
+      ...(keepClip ? ['CLIP_OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip')] : []),
+      'FILTER='+quote(filter),
+      'URLS=('+urls.map(quote).join(' ')+')',
+      "command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1 || { printf '%s\\n' '"+message("FFmpeg bulunamadı. Termux: pkg install ffmpeg","FFmpeg not found. Termux: pkg install ffmpeg")+"' >&2; exit 127; }",
+      "command -v sha256sum >/dev/null 2>&1 || { printf '%s\\n' 'SHA-256 utility not found (sha256sum).'; exit 127; }",
+      keepClip ? "mkdir -p -- \"$OUT\" \"$CLIP_OUT\" || exit 1" : "mkdir -p -- \"$OUT\" || exit 1",
+      "PRIVATE_BASE=${PREFIX:-$HOME/.cache}/tmp",
+      "if ! mkdir -p -- \"$PRIVATE_BASE\" 2>/dev/null || [[ ! -w \"$PRIVATE_BASE\" ]]; then",
+      "  PRIVATE_BASE=\"$HOME/.cache/yt-dlp-frame\"",
+      "  mkdir -p -- \"$PRIVATE_BASE\" || exit 1",
+      "fi",
+      "RUN_TMP=$(mktemp -d \"$PRIVATE_BASE/ytdlp-frame.XXXXXX\") || exit 1",
+      "PUBLISH_TMP=\"\"",
+      ...(keepClip ? ["CLIP_PUBLISH_TMP=\"\""] : []),
+      "cleanup() {",
+      "  [[ -z \"$PUBLISH_TMP\" ]] || rm -rf -- \"$PUBLISH_TMP\"",
+      ...(keepClip ? ["  [[ -z \"$CLIP_PUBLISH_TMP\" ]] || rm -rf -- \"$CLIP_PUBLISH_TMP\""] : []),
+      "  rm -rf -- \"$RUN_TMP\"",
+      "}",
+      "trap cleanup EXIT",
+      "trap 'exit 130' HUP INT TERM",
+      "video_dimensions() {",
+      "  local SIZE",
+      "  SIZE=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of default=noprint_wrappers=1:nokey=1 \"$1\" 2>/dev/null) || return 1",
+      "  SIZE=${SIZE//$'\\n'/x}",
+      "  [[ \"$SIZE\" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || return 1",
+      "  printf '%s\\n' \"$SIZE\"",
+      "}",
+      "source_dimensions() {",
+      "  local SIZE ORIENTATION ROTATION",
+      "  SIZE=$(video_dimensions \"$1\") || return 1",
+      "  ORIENTATION=$(ffprobe -v error -select_streams v:0 -show_entries stream_tags=rotate:stream_side_data=rotation -of default=noprint_wrappers=1 \"$1\" 2>/dev/null) || return 1",
+      "  case \"$ORIENTATION\" in",
+      "    *rotation=*) ROTATION=${ORIENTATION##*rotation=};;",
+      "    *TAG:rotate=*) ROTATION=${ORIENTATION##*TAG:rotate=};;",
+      "    *) ROTATION=0;;",
+      "  esac",
+      "  ROTATION=${ROTATION%%$'\\n'*}",
+      "  case \"$ROTATION\" in",
+      "    90|-90|270|-270|90.0*|-90.0*|270.0*|-270.0*) SIZE=\"${SIZE#*x}x${SIZE%x*}\";;",
+      "  esac",
+      "  printf '%s\\n' \"$SIZE\"",
+      "}",
+      "valid_jpg() {",
+      "  [[ -s \"$JPG\" ]] || return 1",
+      "  ffmpeg -hide_banner -loglevel error -nostdin -y -xerror -i \"$JPG\" -frames:v 1 -f null - >/dev/null 2>&1 || return 1",
+      "  DIMENSIONS=$(video_dimensions \"$JPG\") || return 1",
+      "  [[ \"$DIMENSIONS\" == \"$SOURCE_DIMENSIONS\" ]]",
+      "}",
+      "hash_file() {",
+      "  local VALUE",
+      "  VALUE=$(sha256sum < \"$1\" 2>/dev/null) || return 1",
+      "  VALUE=${VALUE%% *}",
+      "  [[ \"$VALUE\" =~ ^[[:xdigit:]]{64}$ ]] || return 1",
+      "  printf '%s\\n' \"$VALUE\"",
+      "}",
+      "find_duplicate_clip() {",
+      "  local EXPECTED=\"$1\" EXISTING EXISTING_HASH",
+      "  [[ -e \"$SCLIP_DIR\" ]] || return 1",
+      "  [[ -d \"$SCLIP_DIR\" && -r \"$SCLIP_DIR\" && -x \"$SCLIP_DIR\" ]] || return 2",
+      "  find \"$SCLIP_DIR\" -maxdepth 1 -type f -print0 > \"$ITEM_TMP/sclip-files.nul\" 2>/dev/null || return 2",
+      "  while IFS= read -r -d '' EXISTING; do",
+      "    EXISTING_HASH=$(hash_file \"$EXISTING\") || return 2",
+      "    [[ \"$EXISTING_HASH\" == \"$EXPECTED\" ]] && return 0",
+      "  done < \"$ITEM_TMP/sclip-files.nul\"",
+      "  return 1",
+      "}",
+      "SUCCESS=0",
+      "DUPLICATES=0",
+      "FAILURES=0",
+      "ERRORS=()",
+      "FIRST_URL=1",
+      "for URL in \"${URLS[@]}\"; do",
+      '  if [[ $FIRST_URL -eq 0 ]]; then sleep '+min+'; fi',
+      "  FIRST_URL=0",
+      "  ITEM_TMP=$(mktemp -d \"$RUN_TMP/item.XXXXXX\") || { FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — "+message("geçici klasör oluşturulamadı","could not create temporary directory")+"\"); continue; }",
+      "  META_ARGS=()",
+      '  if [[ "$URL" =~ ^https://www\\.instagram\\.com/stories/([^/?#]+) ]]; then META_ARGS=(--parse-metadata '+quote(storyMetadata)+'); fi',
+      '  "${YTDLP[@]}" "${COMMON[@]}" "${COOKIES[@]}" "${SLEEP[@]}" "${SELECT[@]}" "${META_ARGS[@]}" --no-overwrites -f "bv" --download-sections "*0-1" -P "$ITEM_TMP" -o '+quote(template())+' -- "$URL"',
+      "  if [[ $? -ne 0 ]]; then",
+      "    FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — "+message("indirme başarısız","download failed")+"\")",
+      "    rm -rf -- \"$ITEM_TMP\"; continue",
+      "  fi",
+      "  VIDEO_FOUND=0",
+      "  URL_FAILURES=0",
+      "  URL_ERRORS=()",
+      "  for VIDEO in \"$ITEM_TMP\"/*; do",
+      "    [[ -f \"$VIDEO\" ]] || continue",
+      "    case \"$VIDEO\" in *.part|*.ytdl|*.jpg|*.json) continue;; esac",
+      "    VIDEO_FOUND=1",
+      "    SAVED=0",
+      "    REASON='SHA-256 özeti alınamadı / hash could not be read'",
+      "    SOURCE_HASH=$(hash_file \"$VIDEO\") || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    find_duplicate_clip \"$SOURCE_HASH\"",
+      "    DUPLICATE_STATUS=$?",
+      "    if [[ $DUPLICATE_STATUS -eq 0 ]]; then DUPLICATES=$((DUPLICATES+1)); continue; fi",
+      "    if [[ $DUPLICATE_STATUS -ne 1 ]]; then",
+      "      REASON='SClip dosyaları okunamadı veya hash alınamadı / existing SClip files could not be read or hashed'",
+      "      URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue",
+      "    fi",
+      "    REASON='"+message("kaynak çözünürlüğü okunamadı","could not read source dimensions")+"'",
+      "    SOURCE_DIMENSIONS=$(source_dimensions \"$VIDEO\") || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    [[ \"$SOURCE_DIMENSIONS\" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    JPG=\"$ITEM_TMP/frame.jpg\"",
+      "    REASON='"+message("JPG oluşturulamadı veya doğrulanamadı","could not create or verify JPG")+"'",
+      "    if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -vf \"$FILTER\" -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || ! valid_jpg; then",
+      "      rm -f -- \"$JPG\"",
+      "      if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || ! valid_jpg; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; fi",
+      "      valid_jpg || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    fi",
+      ...(keepClip ? [
+        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}; EXT=${VIDEO##*.}",
+        "    REASON='"+message("JPG veya SClip hedef klasöre aktarılamadı","could not publish JPG or SClip to output folders")+"'",
+      "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+      "    CLIP_PUBLISH_TMP=$(mktemp -d \"$CLIP_OUT/.sclip-publish.XXXXXX\") || { rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"; URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
+        "    CLIP_STAGED=\"$CLIP_PUBLISH_TMP/clip.$EXT\"",
+        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\" && cp -- \"$VIDEO\" \"$CLIP_STAGED\" && cmp -s -- \"$VIDEO\" \"$CLIP_STAGED\"; then",
+        "      SEQUENCE=1",
+        "      while :; do",
+        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"; CLIP_TARGET=\"$CLIP_OUT/$BASE-$SUFFIX.$EXT\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" || -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        mv -nT -- \"$CLIP_STAGED\" \"$CLIP_TARGET\" 2>/dev/null || break",
+        "        if [[ -e \"$CLIP_STAGED\" ]]; then",
+        "          if [[ -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "          break",
+        "        fi",
+        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || true",
+        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
+        "        rm -f -- \"$CLIP_TARGET\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        break",
+        "      done",
+        "    fi",
+        "    rm -rf -- \"$PUBLISH_TMP\" \"$CLIP_PUBLISH_TMP\"; PUBLISH_TMP=\"\"; CLIP_PUBLISH_TMP=\"\"",
+      ] : [
+        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}",
+        "    REASON='"+message("JPG hedef klasöre aktarılamadı","could not publish JPG to output folder")+"'",
+      "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
+        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
+        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\"; then",
+        "      SEQUENCE=1",
+        "      while :; do",
+        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || break",
+        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
+        "        [[ -e \"$TARGET\" || -L \"$TARGET\" ]] || break",
+        "        SEQUENCE=$((SEQUENCE+1))",
+        "      done",
+        "    fi",
+        "    rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"",
+      ]),
+      "    if [[ $SAVED -eq 0 ]]; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); fi",
+      "  done",
+      "  if [[ $VIDEO_FOUND -eq 0 ]]; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\\"$URL — "+message("video bulunamadı","video not found")+"\\"); fi",
+      "  FAILURES=$((FAILURES+URL_FAILURES))",
+      "  if [[ ${#URL_ERRORS[@]} -gt 0 ]]; then ERRORS+=(\"${URL_ERRORS[@]}\"); fi",
+      "  rm -rf -- \"$ITEM_TMP\"",
+      "done",
+      "cleanup",
+      "trap - EXIT HUP INT TERM",
+      "printf '"+message(keepClip ? "Başarılı çift: %d | Tekrarlanan: %d | Başarısız: %d" : "Başarılı JPG: %d | Tekrarlanan: %d | Başarısız JPG: %d", keepClip ? "Successful pairs: %d | Duplicates: %d | Failed: %d" : "Successful JPGs: %d | Duplicates: %d | Failed JPGs: %d")+"\\n' \"$SUCCESS\" \"$DUPLICATES\" \"$FAILURES\"",
+      "if [[ ${#ERRORS[@]} -gt 0 ]]; then printf '%s\\n' \"${ERRORS[@]}\" >&2; fi",
+      "[[ $FAILURES -eq 0 ]]"
+    ];
+    // A single, isolated Bash invocation also completes cleanup when pasted into Termux.
+    return "bash -c '"+lines.join('\n').replace(/'/g,"'\\''")+"'";
+  }
+  function removeUrl(text, target) {
+    const isTarget = part => parseUrls(part,true).includes(target);
+    // Preserve the draft around each representation of the selected canonical URL.
+    let remaining=String(text).replace(/(?:https?:\/\/|(?:www\.)?instagram\.com\/)(?:(?!https?:\/\/)[^\s<>"“”])+/gi,
+      part=>isTarget(part) ? '' : part);
+    remaining=remaining.replace(/(^|[\s(])((?:stories\/[\w.]+(?:\/\d+)?|(?:reel|p|tv)\/[\w-]+)\/?(?=$|[\s),;.!?])(?:\?[^\s<>"“”]*)?)/gi,
+      (match,prefix,part)=>isTarget(part) ? prefix : match);
+    remaining=remaining.replace(/^([^\r\n]*)$/gm,line=>{
+      if(normalizeBareUsernames(line)===line || !isTarget(line)) return line;
+      const match=line.match(bareUsernameLine);
+      return match[1]+match[3];
+    });
+    return remaining.trim();
+  }
+  function build(input) {
+    const s = {...defaults, ...input.settings};
+    delete s.audioFormat;
+    if (!['normal','experimental'].includes(s.engine) || !['av','video','audio','still','frame','frame_sclip'].includes(s.mode)) throw Error('Geçersiz motor veya biçim.');
+    const urls = parseUrls(input.links);
+    if (!urls.length) throw Error('En az bir Instagram içerik bağlantısı girin.');
+    const items = urls.some(collectionKind) ? selectionSpec(input.selection) : null;
+    const min = numeric(s.min, 'Sleep min'), max = numeric(s.max, 'Sleep max'), req = numeric(s.requests, 'Sleep requests');
+    if (max < min) throw Error('Sleep max, minimumdan küçük olamaz.');
+    shellPath(s.folder);
+    const outputSubdir = s.mode === 'audio' ? 'Audio' : s.mode === 'still' ? 'SClip' : 'Video';
+    const folder = ['frame','frame_sclip'].includes(s.mode) ? null : shellPath(s.folder.trim().replace(/\/+$/, '') + '/' + outputSubdir);
+    const cookies = s.cookies.trim() ? shellPath(s.cookies) : null;
+    const cuts = ['av','video'].includes(s.mode) ? (input.cuts || []).map(validateCut) :
+      s.mode === 'still' ? [{start:'0',end:'1'}] : [];
+    if(['frame','frame_sclip'].includes(s.mode)) return {command:buildFrameCommand(s,urls,items,min,max,req,cookies,input.language,s.mode==='frame_sclip'),urls,settings:s,cuts:[],selection:input.selection||{},commandCount:1};
+    const args = [s.engine === 'normal' ? 'yt-dlp' : shellPath('$HOME/yt-dlp-story-test/bin/yt-dlp'), '--ignore-config', '--no-playlist'];
+    if (items) args.push('--playlist-items ' + quote(items));
+    if (cookies) args.push('--cookies ' + cookies);
+    args.push('--sleep-requests ' + req, '--sleep-interval ' + min, '--max-sleep-interval ' + max,
+      s.overwrite ? '--no-overwrites' : '--force-overwrites');
+    if (s.mode === 'audio') {
+      args.push('-f ' + quote('ba/b'), '-x', '--audio-format best');
+      if (s.thumb) args.push('--embed-thumbnail', '--convert-thumbnails jpg');
+    } else if (s.mode === 'still' || s.mode === 'video') args.push('-f ' + quote('bv'));
+    else args.push('-f ' + quote('bv+ba/b'));
+    for (const cut of cuts) args.push('--download-sections ' + quote('*' + cut.start + '-' + cut.end));
+    if (urls.some(url=>/^https:\/\/www\.instagram\.com\/stories\//.test(url))) args.push('--parse-metadata ' + quote(storyMetadata));
+    args.push('-P ' + folder,
+      '-o ' + quote(template(s,cuts.length>0)), '--', ...urls.map(quote));
+    return {command:args.join(' \\\n  '), urls, settings:s,
+      cuts:['av','video'].includes(s.mode) ? cuts : [], selection:input.selection || {}, commandCount:1};
+  }
+  return {defaults, normalizeSettings, quote, shellPath, collectionKind, selectionSpec, normalizeBareUsernames, cleanNoteUrls, cleanNotes, mergeDailyNotes, spaceNoteGroups, noteSeparatorOffsets, countNoteLinks, parseUrls, removeUrl, validateCut, template, storyMetadata, build};
+});
+\\n'*}",
+      "  case \"$ROTATION\" in",
+      "    90|-90|270|-270|90.0*|-90.0*|270.0*|-270.0*) SIZE=\"${SIZE#*x}x${SIZE%x*}\";;",
+      "  esac",
+      "  printf '%s\\n' \"$SIZE\"",
+      "}",
+      "valid_jpg() {",
+      "  [[ -s \"$JPG\" ]] || return 1",
+      "  ffmpeg -hide_banner -loglevel error -nostdin -y -xerror -i \"$JPG\" -frames:v 1 -f null - >/dev/null 2>&1 || return 1",
+      "  DIMENSIONS=$(video_dimensions \"$JPG\") || return 1",
+      "  [[ \"$DIMENSIONS\" == \"$SOURCE_DIMENSIONS\" ]]",
+      "}",
+      "SUCCESS=0",
+      "FAILURES=0",
+      "ERRORS=()",
+      "FIRST_URL=1",
+      "for URL in \"${URLS[@]}\"; do",
+      '  if [[ $FIRST_URL -eq 0 ]]; then sleep '+min+'; fi',
+      "  FIRST_URL=0",
+      "  ITEM_TMP=$(mktemp -d \"$RUN_TMP/item.XXXXXX\") || { FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — "+message("geçici klasör oluşturulamadı","could not create temporary directory")+"\"); continue; }",
+      "  META_ARGS=()",
+      '  if [[ "$URL" =~ ^https://www\\.instagram\\.com/stories/([^/?#]+) ]]; then META_ARGS=(--parse-metadata '+quote(storyMetadata)+'); fi',
+      '  "${YTDLP[@]}" "${COMMON[@]}" "${COOKIES[@]}" "${SLEEP[@]}" "${SELECT[@]}" "${META_ARGS[@]}" --no-overwrites -f "bv" --download-sections "*0-1" -P "$ITEM_TMP" -o '+quote(template())+' -- "$URL"',
+      "  if [[ $? -ne 0 ]]; then",
+      "    FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — "+message("indirme başarısız","download failed")+"\")",
+      "    rm -rf -- \"$ITEM_TMP\"; continue",
+      "  fi",
+      "  SAVED=0",
+      "  REASON='"+message("video bulunamadı","video not found")+"'",
+      "  for VIDEO in \"$ITEM_TMP\"/*; do",
+      "    [[ -f \"$VIDEO\" ]] || continue",
+      "    case \"$VIDEO\" in *.part|*.ytdl|*.jpg|*.json) continue;; esac",
+      "    REASON='"+message("kaynak çözünürlüğü okunamadı","could not read source dimensions")+"'",
+      "    SOURCE_DIMENSIONS=$(source_dimensions \"$VIDEO\") || continue",
+      "    [[ \"$SOURCE_DIMENSIONS\" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || continue",
+      "    JPG=\"$ITEM_TMP/frame.jpg\"",
+      "    REASON='"+message("JPG oluşturulamadı veya doğrulanamadı","could not create or verify JPG")+"'",
+      "    if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -vf \"$FILTER\" -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || ! valid_jpg; then",
+      "      rm -f -- \"$JPG\"",
+      "      ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || continue",
+      "      valid_jpg || continue",
+      "    fi",
+      ...(keepClip ? [
+        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}; EXT=${VIDEO##*.}",
+        "    REASON='"+message("JPG veya SClip hedef klasöre aktarılamadı","could not publish JPG or SClip to output folders")+"'",
+        "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || continue",
+        "    CLIP_PUBLISH_TMP=$(mktemp -d \"$CLIP_OUT/.sclip-publish.XXXXXX\") || { rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"; continue; }",
+        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
+        "    CLIP_STAGED=\"$CLIP_PUBLISH_TMP/clip.$EXT\"",
+        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\" && cp -- \"$VIDEO\" \"$CLIP_STAGED\" && cmp -s -- \"$VIDEO\" \"$CLIP_STAGED\"; then",
+        "      SEQUENCE=1",
+        "      while :; do",
+        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"; CLIP_TARGET=\"$CLIP_OUT/$BASE-$SUFFIX.$EXT\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" || -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        mv -nT -- \"$CLIP_STAGED\" \"$CLIP_TARGET\" 2>/dev/null || break",
+        "        if [[ -e \"$CLIP_STAGED\" ]]; then",
+        "          if [[ -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "          break",
+        "        fi",
+        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || true",
+        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
+        "        rm -f -- \"$CLIP_TARGET\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        break",
+        "      done",
+        "    fi",
+        "    rm -rf -- \"$PUBLISH_TMP\" \"$CLIP_PUBLISH_TMP\"; PUBLISH_TMP=\"\"; CLIP_PUBLISH_TMP=\"\"",
+        "    [[ $SAVED -eq 0 ]] || break",
+      ] : [
+        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}",
+        "    REASON='"+message("JPG hedef klasöre aktarılamadı","could not publish JPG to output folder")+"'",
+        "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || continue",
+        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
+        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\"; then",
+        "      SEQUENCE=1",
+        "      while :; do",
+        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"",
+        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
+        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || break",
+        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
+        "        [[ -e \"$TARGET\" || -L \"$TARGET\" ]] || break",
+        "        SEQUENCE=$((SEQUENCE+1))",
+        "      done",
+        "    fi",
+        "    rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"",
+        "    [[ $SAVED -eq 0 ]] || break",
+      ]),
+      "  done",
+      "  if [[ $SAVED -eq 0 ]]; then FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — $REASON\"); fi",
+      "  rm -rf -- \"$ITEM_TMP\"",
+      "done",
+      "cleanup",
+      "trap - EXIT HUP INT TERM",
+      "printf '"+message(keepClip ? "Başarılı çift: %d | Başarısız: %d" : "Başarılı JPG: %d | Başarısız JPG: %d", keepClip ? "Successful pairs: %d | Failed: %d" : "Successful JPGs: %d | Failed JPGs: %d")+"\\n' \"$SUCCESS\" \"$FAILURES\"",
+      "if [[ ${#ERRORS[@]} -gt 0 ]]; then printf '%s\\n' \"${ERRORS[@]}\" >&2; fi",
+      "[[ $FAILURES -eq 0 ]]"
+    ];
+    // A single, isolated Bash invocation also completes cleanup when pasted into Termux.
+    return "bash -c '"+lines.join('\n').replace(/'/g,"'\\''")+"'";
+  }
   function buildFrameCommand(settings, urls, items, min, max, req, cookies, language, keepClip) {
+    if (!keepClip) return buildFrameOnlyCommand(settings, urls, items, min, max, req, cookies, language, false);
     const message=(tr,en)=>language==='en' ? en : tr;
     const target=frameTimestamp(settings);
     // Keep every improving candidate, then take the last one: the global nearest frame.
