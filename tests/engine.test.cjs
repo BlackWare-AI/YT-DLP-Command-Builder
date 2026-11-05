@@ -401,12 +401,14 @@ test('English Frame + SClip translates paired-output messages and keeps the same
   ['geçici klasör oluşturulamadı','could not create temporary directory'],
   ['indirme başarısız','download failed'],
   ['video bulunamadı','video not found'],
+  ['SHA-256 özeti okunamadı','could not read SHA-256 hash'],
+  ['SClip dosyaları okunamadı veya hash alınamadı','could not read or hash existing SClip files'],
   ['kaynak çözünürlüğü okunamadı','could not read source dimensions'],
   ['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],
   ['JPG veya SClip hedef klasöre aktarılamadı','could not publish JPG or SClip to output folders'],
   ['Başarılı çift: %d | Tekrarlanan: %d | Başarısız: %d','Successful pairs: %d | Duplicates: %d | Failed: %d']
  ];
- let expected=tr;for(const [a,b] of messages)expected=expected.replace(a,b);
+  let expected=tr;for(const [a,b] of messages)expected=expected.split(a).join(b);
  assert.equal(en,expected);
 });
 test('daily notes accumulate unique cleaned links, retain deletions and update annotations',()=>{
