@@ -21,6 +21,8 @@ const root=path.resolve(__dirname,'..');
    await page.clock.install({time:new Date('2026-10-29T12:00:00+03:00')});
    const url='http://127.0.0.1:'+server.address().port+(edition==='en'?'/en/':'/');
    await page.goto(url);await page.click('#notesBtn');
+   assert.equal(await page.locator('#notes').evaluate(el=>getComputedStyle(el).paddingLeft),'8px');
+   assert.equal(await page.locator('#notes').evaluate(el=>getComputedStyle(el).paddingRight),'8px');
    assert.equal(await page.locator('#notes').evaluate(el=>el===document.activeElement),false);
    const paste='https://instagram.com/stories/user.a/1?utm_source=x V\nreel/B S\nstories/user.c/3 V\nreel/D V1s';
    await page.evaluate(text=>{
