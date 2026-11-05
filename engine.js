@@ -254,6 +254,7 @@
       items ? 'SELECT=(--playlist-items '+quote(items)+')' : 'SELECT=()',
       'SLEEP=(--sleep-requests '+req+' --sleep-interval '+min+' --max-sleep-interval '+max+')',
       'OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/Frame'),
+      'SCLIP_DIR='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip'),
       ...(keepClip ? ['CLIP_OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip')] : []),
       'FILTER='+quote(filter),
       'URLS=('+urls.map(quote).join(' ')+')',
@@ -302,7 +303,25 @@
       "  DIMENSIONS=$(video_dimensions \"$JPG\") || return 1",
       "  [[ \"$DIMENSIONS\" == \"$SOURCE_DIMENSIONS\" ]]",
       "}",
+      "hash_file() {",
+      "  local VALUE",
+      "  VALUE=$(sha256sum < \"$1\" 2>/dev/null) || return 1",
+      "  VALUE=${VALUE%% *}",
+      "  [[ \"$VALUE\" =~ ^[[:xdigit:]]{64}$ ]] || return 1",
+      "  printf '%s\\n' \"$VALUE\"",
+      "}",
+      "find_duplicate_clip() {",
+      "  local EXPECTED=\"$1\" EXISTING EXISTING_HASH",
+      "  [[ -d \"$SCLIP_DIR\" && -r \"$SCLIP_DIR\" && -x \"$SCLIP_DIR\" ]] || return 2",
+      "  find \"$SCLIP_DIR\" -maxdepth 1 -type f -print0 > \"$ITEM_TMP/sclip-files.nul\" 2>/dev/null || return 2",
+      "  while IFS= read -r -d '' EXISTING; do",
+      "    EXISTING_HASH=$(hash_file \"$EXISTING\") || return 2",
+      "    [[ \"$EXISTING_HASH\" == \"$EXPECTED\" ]] && return 0",
+      "  done < \"$ITEM_TMP/sclip-files.nul\"",
+      "  return 1",
+      "}",
       "SUCCESS=0",
+      "DUPLICATES=0",
       "FAILURES=0",
       "ERRORS=()",
       "FIRST_URL=1",
@@ -317,73 +336,66 @@
       "    FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — "+message("indirme başarısız","download failed")+"\")",
       "    rm -rf -- \"$ITEM_TMP\"; continue",
       "  fi",
-      "  SAVED=0",
-      "  REASON='"+message("video bulunamadı","video not found")+"'",
-      "  for VIDEO in \"$ITEM_TMP\"/*; do",
-      "    [[ -f \"$VIDEO\" ]] || continue",
-      "    case \"$VIDEO\" in *.part|*.ytdl|*.jpg|*.json) continue;; esac",
-      "    REASON='"+message("kaynak çözünürlüğü okunamadı","could not read source dimensions")+"'",
-      "    SOURCE_DIMENSIONS=$(source_dimensions \"$VIDEO\") || continue",
-      "    [[ \"$SOURCE_DIMENSIONS\" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || continue",
-      "    JPG=\"$ITEM_TMP/frame.jpg\"",
-      "    REASON='"+message("JPG oluşturulamadı veya doğrulanamadı","could not create or verify JPG")+"'",
-      "    if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -vf \"$FILTER\" -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || ! valid_jpg; then",
-      "      rm -f -- \"$JPG\"",
-      "      ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || continue",
-      "      valid_jpg || continue",
-      "    fi",
-      ...(keepClip ? [
-        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}; EXT=${VIDEO##*.}",
-        "    REASON='"+message("JPG veya SClip hedef klasöre aktarılamadı","could not publish JPG or SClip to output folders")+"'",
-        "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || continue",
-        "    CLIP_PUBLISH_TMP=$(mktemp -d \"$CLIP_OUT/.sclip-publish.XXXXXX\") || { rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"; continue; }",
-        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
-        "    CLIP_STAGED=\"$CLIP_PUBLISH_TMP/clip.$EXT\"",
-        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\" && cp -- \"$VIDEO\" \"$CLIP_STAGED\" && cmp -s -- \"$VIDEO\" \"$CLIP_STAGED\"; then",
-        "      SEQUENCE=1",
-        "      while :; do",
-        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"; CLIP_TARGET=\"$CLIP_OUT/$BASE-$SUFFIX.$EXT\"",
-        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" || -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
-        "        mv -nT -- \"$CLIP_STAGED\" \"$CLIP_TARGET\" 2>/dev/null || break",
-        "        if [[ -e \"$CLIP_STAGED\" ]]; then",
-        "          if [[ -e \"$CLIP_TARGET\" || -L \"$CLIP_TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
-        "          break",
-        "        fi",
-        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || true",
-        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
-        "        rm -f -- \"$CLIP_TARGET\"",
-        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
-        "        break",
-        "      done",
-        "    fi",
-        "    rm -rf -- \"$PUBLISH_TMP\" \"$CLIP_PUBLISH_TMP\"; PUBLISH_TMP=\"\"; CLIP_PUBLISH_TMP=\"\"",
-        "    [[ $SAVED -eq 0 ]] || break",
-      ] : [
-        "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}",
-        "    REASON='"+message("JPG hedef klasöre aktarılamadı","could not publish JPG to output folder")+"'",
-        "    PUBLISH_TMP=$(mktemp -d \"$OUT/.frame-publish.XXXXXX\") || continue",
-        "    STAGED=\"$PUBLISH_TMP/frame.jpg\"",
-        "    if cp -- \"$JPG\" \"$STAGED\" && cmp -s -- \"$JPG\" \"$STAGED\"; then",
-        "      SEQUENCE=1",
-        "      while :; do",
-        "        SUFFIX=$(printf '%02d' \"$SEQUENCE\"); TARGET=\"$OUT/$BASE-$SUFFIX.jpg\"",
-        "        if [[ -e \"$TARGET\" || -L \"$TARGET\" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi",
-        "        mv -nT -- \"$STAGED\" \"$TARGET\" 2>/dev/null || break",
-        "        if [[ ! -e \"$STAGED\" ]]; then SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi",
-        "        [[ -e \"$TARGET\" || -L \"$TARGET\" ]] || break",
-        "        SEQUENCE=$((SEQUENCE+1))",
-        "      done",
-        "    fi",
-        "    rm -rf -- \"$PUBLISH_TMP\"; PUBLISH_TMP=\"\"",
-        "    [[ $SAVED -eq 0 ]] || break",
-      ]),
-      "  done",
-      "  if [[ $SAVED -eq 0 ]]; then FAILURES=$((FAILURES+1)); ERRORS+=(\"$URL — $REASON\"); fi",
+  VIDEO_FOUND=0
+  URL_SAVED=0
+  URL_DUPLICATES=0
+  URL_ITEM_FAILURES=0
+  for VIDEO in "$ITEM_TMP"/*; do
+    [[ -f "$VIDEO" ]] || continue
+    case "$VIDEO" in *.part|*.ytdl|*.jpg|*.json) continue;; esac
+    VIDEO_FOUND=1
+    SAVED=0
+      "    REASON=\'"+message("SHA-256 özeti okunamadı","could not read SHA-256 hash")+"\'",
+    SOURCE_HASH=$(hash_file "$VIDEO") || { URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=("$URL — $REASON"); continue; }
+    find_duplicate_clip "$SOURCE_HASH"
+    DUPLICATE_STATUS=$?
+    if [[ $DUPLICATE_STATUS -eq 0 ]]; then DUPLICATES=$((DUPLICATES+1)); URL_DUPLICATES=$((URL_DUPLICATES+1)); continue; fi
+    if [[ $DUPLICATE_STATUS -ne 1 ]]; then
+      "      REASON=\'"+message("SClip dosyaları okunamadı veya hash alınamadı","could not read or hash existing SClip files")+"\'",
+      URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=("$URL — $REASON"); continue
+    fi
+      "    REASON=\'"+message("kaynak çözünürlüğü okunamadı","could not read source dimensions")+"\'",
+    SOURCE_DIMENSIONS=$(source_dimensions "$VIDEO") || { URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=("$URL — $REASON"); continue; }
+    [[ "$SOURCE_DIMENSIONS" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || { URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=("$URL — $REASON"); continue; }
+    JPG="$ITEM_TMP/frame.jpg"
+      "    REASON=\'"+message("JPG oluşturulamadı veya doğrulanamadı","could not create or verify JPG")+"\'",
+    if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i "$VIDEO" -map 0:v:0 -vf "$FILTER" -frames:v 1 -q:v 1 -pix_fmt yuvj444p "$JPG" || ! valid_jpg; then
+      rm -f -- "$JPG"
+      if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i "$VIDEO" -map 0:v:0 -frames:v 1 -q:v 1 -pix_fmt yuvj444p "$JPG" || ! valid_jpg; then URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=("$URL — $REASON"); continue; fi
+    fi
+    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}; EXT=${VIDEO##*.}
+      "    REASON=\'"+message("JPG veya SClip hedef klasöre aktarılamadı","could not publish JPG or SClip to output folders")+"\'",
+    PUBLISH_TMP=$(mktemp -d "$OUT/.frame-publish.XXXXXX") || { URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=("$URL — $REASON"); continue; }
+    CLIP_PUBLISH_TMP=$(mktemp -d "$CLIP_OUT/.sclip-publish.XXXXXX") || { rm -rf -- "$PUBLISH_TMP"; PUBLISH_TMP=""; URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=("$URL — $REASON"); continue; }
+    STAGED="$PUBLISH_TMP/frame.jpg"
+    CLIP_STAGED="$CLIP_PUBLISH_TMP/clip.$EXT"
+    if cp -- "$JPG" "$STAGED" && cmp -s -- "$JPG" "$STAGED" && cp -- "$VIDEO" "$CLIP_STAGED" && cmp -s -- "$VIDEO" "$CLIP_STAGED"; then
+      SEQUENCE=1
+      while :; do
+        SUFFIX=$(printf '%02d' "$SEQUENCE"); TARGET="$OUT/$BASE-$SUFFIX.jpg"; CLIP_TARGET="$CLIP_OUT/$BASE-$SUFFIX.$EXT"
+        if [[ -e "$TARGET" || -L "$TARGET" || -e "$CLIP_TARGET" || -L "$CLIP_TARGET" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi
+        mv -nT -- "$CLIP_STAGED" "$CLIP_TARGET" 2>/dev/null || break
+        if [[ -e "$CLIP_STAGED" ]]; then
+          if [[ -e "$CLIP_TARGET" || -L "$CLIP_TARGET" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi
+          break
+        fi
+        mv -nT -- "$STAGED" "$TARGET" 2>/dev/null || true
+        if [[ ! -e "$STAGED" ]]; then SAVED=1; URL_SAVED=1; SUCCESS=$((SUCCESS+1)); break; fi
+        rm -f -- "$CLIP_TARGET"
+        if [[ -e "$TARGET" || -L "$TARGET" ]]; then SEQUENCE=$((SEQUENCE+1)); continue; fi
+        break
+      done
+    fi
+    rm -rf -- "$PUBLISH_TMP" "$CLIP_PUBLISH_TMP"; PUBLISH_TMP=""; CLIP_PUBLISH_TMP=""
+    if [[ $SAVED -eq 0 ]]; then URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=("$URL — $REASON"); fi
+  done
+      "    NO_VIDEO_REASON=\'"+message("video bulunamadı","video not found")+"\'",
+      "  if [[ $VIDEO_FOUND -eq 0 ]]; then URL_ITEM_FAILURES=$((URL_ITEM_FAILURES+1)); ERRORS+=(\"$URL — $NO_VIDEO_REASON\"); fi",
       "  rm -rf -- \"$ITEM_TMP\"",
       "done",
       "cleanup",
       "trap - EXIT HUP INT TERM",
-      "printf '"+message(keepClip ? "Başarılı çift: %d | Başarısız: %d" : "Başarılı JPG: %d | Başarısız JPG: %d", keepClip ? "Successful pairs: %d | Failed: %d" : "Successful JPGs: %d | Failed JPGs: %d")+"\\n' \"$SUCCESS\" \"$FAILURES\"",
+      "printf '"+message("Başarılı çift: %d | Tekrarlanan: %d | Başarısız: %d","Successful pairs: %d | Duplicates: %d | Failed: %d")+"\\n' \"$SUCCESS\" \"$DUPLICATES\" \"$FAILURES\"",
       "if [[ ${#ERRORS[@]} -gt 0 ]]; then printf '%s\\n' \"${ERRORS[@]}\" >&2; fi",
       "[[ $FAILURES -eq 0 ]]"
     ];
