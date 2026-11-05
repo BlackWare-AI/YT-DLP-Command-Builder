@@ -132,15 +132,17 @@ test('Frame + SClip skips repeated bytes and preserves existing files',{skip:!ff
  const blocked=path.join(f.root,'prefix-file');fs.writeFileSync(blocked,'keep');
  for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const fallback=f.run(undefined,{}, {PREFIX:blocked});assert.equal(fallback.status,0,fallback.stderr);assert.equal(fs.readFileSync(blocked,'utf8'),'keep');assert.deepEqual(fs.readdirSync(path.join(f.home,'.cache/yt-dlp-frame')),[]);f.clean();
 });
-test('Frame Only also skips video already present in SClip',{skip:!ffmpegAvailable},t=>{
+test('Frame Only ignores the SClip duplicate list and preserves JPG-only behavior',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
  fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'same-video-different-name.mkv'));
+ const command=f.build(undefined,{mode:'frame'});
+ assert.doesNotMatch(command,/sha256sum|find_duplicate_clip|SCLIP_DIR|DUPLICATES/);
  const result=f.run(undefined,{mode:'frame'});assert.equal(result.status,0,result.stderr);
- assert.match(result.stdout,/Başarılı JPG: 0 \| Tekrarlanan: 1 \| Başarısız JPG: 0/);
- assert.deepEqual(fs.readdirSync(f.output),[]);
+ assert.match(result.stdout,/Başarılı JPG: 1 \| Başarısız JPG: 0/);
+ assert.deepEqual(fs.readdirSync(f.output),['account-20261029-1530-01.jpg']);
  assert.deepEqual(fs.readdirSync(f.clipOutput),['same-video-different-name.mkv']);f.clean();
 });
-test('Frame skips identical SClip bytes even when the saved filename differs',{skip:!ffmpegAvailable},t=>{
+test('Frame + SClip skips identical bytes even when the saved filename differs',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
  fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'renamed-existing-video.mkv'));
  const result=f.run();assert.equal(result.status,0,result.stderr);
@@ -380,7 +382,7 @@ test('English changes only Frame messages and leaves download options and paths 
  assert.match(en,/Successful JPGs: %d/);assert.doesNotMatch(en,/Başarılı JPG:/);
  assert.match(en,/Türkçe/);assert.match(en,/-q:v 1 -pix_fmt yuvj444p/);
  assert.equal(spawnSync('bash',['-n','-c',en]).status,0);
- const messages=[['FFmpeg bulunamadı. Termux: pkg install ffmpeg','FFmpeg not found. Termux: pkg install ffmpeg'],['geçici klasör oluşturulamadı','could not create temporary directory'],['indirme başarısız','download failed'],['video bulunamadı','video not found'],['kaynak çözünürlüğü okunamadı','could not read source dimensions'],['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],['JPG hedef klasöre aktarılamadı','could not publish JPG to output folder'],['Başarılı JPG: %d | Tekrarlanan: %d | Başarısız JPG: %d','Successful JPGs: %d | Duplicates: %d | Failed JPGs: %d']];
+ const messages=[['FFmpeg bulunamadı. Termux: pkg install ffmpeg','FFmpeg not found. Termux: pkg install ffmpeg'],['geçici klasör oluşturulamadı','could not create temporary directory'],['indirme başarısız','download failed'],['video bulunamadı','video not found'],['kaynak çözünürlüğü okunamadı','could not read source dimensions'],['JPG oluşturulamadı veya doğrulanamadı','could not create or verify JPG'],['JPG hedef klasöre aktarılamadı','could not publish JPG to output folder'],['Başarılı JPG: %d | Tekrarlanan: %d | Başarısız JPG: %d','Successful JPGs: %d | Failed JPGs: %d']];
  let expected=tr;for(const [a,b] of messages)expected=expected.replace(a,b);
  assert.equal(en,expected);
  for(const mode of ['av','video','audio','still']) {
