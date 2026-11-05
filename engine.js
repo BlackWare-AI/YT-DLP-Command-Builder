@@ -410,7 +410,7 @@
       ]),
       "    if [[ $SAVED -eq 0 ]]; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); fi",
       "  done",
-      "  if [[ $VIDEO_FOUND -eq 0 ]]; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — video bulunamadı / video not found\"); fi",
+      "  if [[ $VIDEO_FOUND -eq 0 ]]; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\\"$URL — "+message("video bulunamadı","video not found")+"\\"); fi",
       "  FAILURES=$((FAILURES+URL_FAILURES))",
       "  if [[ ${#URL_ERRORS[@]} -gt 0 ]]; then ERRORS+=(\"${URL_ERRORS[@]}\"); fi",
       "  rm -rf -- \"$ITEM_TMP\"",
