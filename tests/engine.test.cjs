@@ -166,7 +166,7 @@ test('Frame + SClip keeps only complete JPG/SClip pairs and cleans failures and 
  const f=frameFixture(t);
  const result=f.run('https://instagram.com/stories/bad/1 https://instagram.com/stories/empty/2 https://instagram.com/stories/account/3');
  assert.equal(result.status,1);assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 0 \| Başarısız: 2/);assert.match(result.stderr,/stories\/bad\/1 — indirme başarısız/);assert.match(result.stderr,/stories\/empty\/2 — video bulunamadı/);f.clean();
- const fallback=f.run(undefined,{}, {FRAME_BEHAVIOR:'fallback'});assert.equal(fallback.status,0,fallback.stderr);
+ for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const fallback=f.run(undefined,{}, {FRAME_BEHAVIOR:'fallback'});assert.equal(fallback.status,0,fallback.stderr);
  assert.deepEqual(fs.readFileSync(path.join(f.output,'account-20261029-1530-02.jpg')),f.expected(f.sources.fps30,.5,true));f.clean();
  const before=fs.readdirSync(f.output).sort(), beforeClips=fs.readdirSync(f.clipOutput).sort();
  for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const broken=f.run(undefined,{}, {FRAME_BEHAVIOR:'broken'});assert.equal(broken.status,1);assert.match(broken.stdout,/Başarılı çift: 0 \| Tekrarlanan: 0 \| Başarısız: 1/);assert.match(broken.stderr,/JPG oluşturulamadı veya doğrulanamadı/);assert.deepEqual(fs.readdirSync(f.output).sort(),before);assert.deepEqual(fs.readdirSync(f.clipOutput).sort(),beforeClips);f.clean();
