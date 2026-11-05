@@ -124,13 +124,21 @@ test('Frame + SClip skips repeated bytes and preserves existing files',{skip:!ff
  const prior=path.join(f.output,'account-20261029-1530-01.jpg');fs.writeFileSync(prior,'existing user JPG');
  const priorClip=path.join(f.clipOutput,'account-20261029-1530-01.mkv');fs.writeFileSync(priorClip,'existing user clip');
  const links=Array.from({length:8},(_,i)=>`https://instagram.com/stories/account/${100+i}`).join(' ');
- const result=f.run(links);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 8 \| Tekrarlanan: 0 \| Başarısız: 0/);
+ const result=f.run(links);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 7 \| Başarısız: 0/);
  assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);
  assert.ok(fs.existsSync(path.join(f.output,'account-20261029-1530-02.jpg')));assert.ok(fs.existsSync(path.join(f.clipOutput,'account-20261029-1530-02.mkv')));assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
  const again=f.run(links);assert.equal(again.status,0,again.stderr);assert.match(again.stdout,/Başarılı çift: 0 \\| Tekrarlanan: 8 \\| Başarısız: 0/);assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);assert.equal(fs.readFileSync(prior,'utf8'),'existing user JPG');assert.equal(fs.readFileSync(priorClip,'utf8'),'existing user clip');f.clean();
  const multi=f.run('https://instagram.com/stories/multi/123');assert.equal(multi.status,0,multi.stderr);assert.match(multi.stdout,/Başarılı çift: 0 \\| Tekrarlanan: 2 \\| Başarısız: 0/);assert.equal(fs.readdirSync(f.output).length,2);assert.equal(fs.readdirSync(f.clipOutput).length,2);f.clean();
  const blocked=path.join(f.root,'prefix-file');fs.writeFileSync(blocked,'keep');
  for(const file of fs.readdirSync(f.clipOutput))fs.rmSync(path.join(f.clipOutput,file));const fallback=f.run(undefined,{}, {PREFIX:blocked});assert.equal(fallback.status,0,fallback.stderr);assert.equal(fs.readFileSync(blocked,'utf8'),'keep');assert.deepEqual(fs.readdirSync(path.join(f.home,'.cache/yt-dlp-frame')),[]);f.clean();
+});
+test('Frame Only also skips video already present in SClip',{skip:!ffmpegAvailable},t=>{
+ const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
+ fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'same-video-different-name.mkv'));
+ const result=f.run(undefined,{mode:'frame'});assert.equal(result.status,0,result.stderr);
+ assert.match(result.stdout,/Başarılı JPG: 0 \\| Tekrarlanan: 1 \\| Başarısız JPG: 0/);
+ assert.deepEqual(fs.readdirSync(f.output),[]);
+ assert.deepEqual(fs.readdirSync(f.clipOutput),['same-video-different-name.mkv']);f.clean();
 });
 test('Frame skips identical SClip bytes even when the saved filename differs',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
