@@ -254,6 +254,7 @@
       items ? 'SELECT=(--playlist-items '+quote(items)+')' : 'SELECT=()',
       'SLEEP=(--sleep-requests '+req+' --sleep-interval '+min+' --max-sleep-interval '+max+')',
       'OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/Frame'),
+      'SCLIP_DIR='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip'),
       ...(keepClip ? ['CLIP_OUT='+shellPath(settings.folder.trim().replace(/\/+$/, '')+'/SClip')] : []),
       'FILTER='+quote(filter),
       'URLS=('+urls.map(quote).join(' ')+')',
