@@ -259,6 +259,7 @@
       'FILTER='+quote(filter),
       'URLS=('+urls.map(quote).join(' ')+')',
       "command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1 || { printf '%s\\n' '"+message("FFmpeg bulunamadı. Termux: pkg install ffmpeg","FFmpeg not found. Termux: pkg install ffmpeg")+"' >&2; exit 127; }",
+      "command -v sha256sum >/dev/null 2>&1 || { printf '%s\\n' 'SHA-256 utility not found (sha256sum).'; exit 127; }",
       keepClip ? "mkdir -p -- \"$OUT\" \"$CLIP_OUT\" || exit 1" : "mkdir -p -- \"$OUT\" || exit 1",
       "PRIVATE_BASE=${PREFIX:-$HOME/.cache}/tmp",
       "if ! mkdir -p -- \"$PRIVATE_BASE\" 2>/dev/null || [[ ! -w \"$PRIVATE_BASE\" ]]; then",
