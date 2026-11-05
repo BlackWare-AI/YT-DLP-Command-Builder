@@ -363,7 +363,7 @@
       "    if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -vf \"$FILTER\" -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || ! valid_jpg; then",
       "      rm -f -- \"$JPG\"",
       "      if ! ffmpeg -hide_banner -loglevel error -nostdin -y -i \"$VIDEO\" -map 0:v:0 -frames:v 1 -q:v 1 -pix_fmt yuvj444p \"$JPG\" || ! valid_jpg; then URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; fi",
-      "      valid_jpg || continue",
+      "      valid_jpg || { URL_FAILURES=$((URL_FAILURES+1)); URL_ERRORS+=(\"$URL — $REASON\"); continue; }",
       "    fi",
       ...(keepClip ? [
         "    BASE=${VIDEO##*/}; BASE=${BASE%.*}; BASE=${BASE%-*}; EXT=${VIDEO##*.}",
