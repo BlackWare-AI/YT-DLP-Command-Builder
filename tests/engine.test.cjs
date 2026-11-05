@@ -447,7 +447,7 @@ test('daily archive retains every accepted URL form after notes are removed or r
 test('Frame Only saves one JPG and never creates an SClip folder',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);
  const result=f.run(undefined,{mode:'frame'});
- assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı JPG: 1 \| Tekrarlanan: 0 \| Başarısız JPG: 0/);
+ assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı JPG: 1 \| Başarısız JPG: 0/);
  assert.ok(fs.existsSync(path.join(f.output,'account-20261029-1530-01.jpg')));assert.equal(fs.existsSync(f.clipOutput),false);f.clean();
 });
 test('Frame Only honors selected engine and quoted output folder without creating SClip output',()=>{
