@@ -50,8 +50,8 @@ window.NotesUI={attach(editor) {
     const borderLeft=parseFloat(style.borderLeftWidth)||0,borderTop=parseFloat(style.borderTopWidth)||0;
     for(const item of measuredTags) {
       const chip=document.createElement('span');chip.className='notes-inline-tag';chip.textContent=item.text;
-      const top=item.rect.top-mirrorRect.top-borderTop+(item.rect.height-14)/2;
-      const left=item.rect.left-mirrorRect.left-borderLeft-2;
+      const top=item.rect.top-mirrorRect.top+borderTop-1+(item.rect.height-14)/2;
+      const left=item.rect.left-mirrorRect.left+borderLeft-3;
       Object.assign(chip.style,{left:left+'px',top:top+'px',width:(item.rect.width+4)+'px'});
       layer.append(chip);positions.push(top);
     }
@@ -65,7 +65,7 @@ window.NotesUI={attach(editor) {
         ? item.count+' '+(item.count===1?'link':'links')
         : item.count+' bağlantı';
       divider.append(count);layer.append(divider);
-      positions.push(item.top-borderTop);
+      positions.push(item.top);
     }
     scroll();
   }
