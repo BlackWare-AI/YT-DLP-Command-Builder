@@ -97,7 +97,7 @@ const root=path.resolve(__dirname,'..');
    fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
    await visual.screenshot({path:path.join(root,'test-results/notes-114-'+edition+'.png')});
    // Only compact A/S/V labels immediately after valid Instagram links get white pills.
-   const tagged='stories/label.v/1 V\\nstories/label.a/2 A12\\nreel/LabelS SX1\\nstories/label.plus/4 V+S\\nreel/Clip SClip\\nstories/label.long/5 VS2s\\nSerbest açıklama A\\nA stories/reversed/6';
+   const tagged='stories/label.v/1 V\nstories/label.a/2 A12\nreel/LabelS SX1\nstories/label.plus/4 V+S\nreel/Clip SClip\nstories/label.long/5 VS2s\nSerbest açıklama A\nA stories/reversed/6';
    await visual.fill('#notes',tagged);
    await visual.waitForFunction(()=>document.querySelectorAll('.notes-inline-tag').length===3);
    assert.deepEqual((await visual.locator('.notes-inline-tag').allTextContents()).sort(),['A12','SX1','V']);
