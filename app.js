@@ -463,7 +463,7 @@ function insertNoteText(text) {
   const lineStart=Math.max(prefix.lastIndexOf('\n'),prefix.lastIndexOf('\r'))+1;
   const previousLine=prefix.slice(lineStart).trim();
   const cleaned=Builder.cleanNoteUrls(text);
-  const firstLine=cleaned.split(/\r?\n/).find(line=>line.trim())?.trim() || '';
+  const firstLine=(cleaned.split(/\r?\n/).find(line=>line.trim()) || '').trim();
   const addLineBreak=Boolean(prefix && !/\s$/.test(prefix) &&
     Builder.parseUrls(previousLine,true).length && Builder.parseUrls(firstLine,true).length);
   editor.setRangeText((addLineBreak?'\n':'')+cleaned,start,end,'end');
