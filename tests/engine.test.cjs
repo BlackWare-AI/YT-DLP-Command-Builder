@@ -427,15 +427,36 @@ test('visual group gaps are single rows, stable, and contain no separator charac
  const spaced=B.spaceNoteGroups(text);
  assert.equal(spaced,'stories/a/1 V\nstories/c/3 V\n\nreel/B V1s\n\nreel/C S');
  assert.equal(B.spaceNoteGroups(spaced),spaced);
- assert.equal(B.noteSeparatorOffsets(spaced).length,2);
- assert.deepEqual(B.noteSeparatorGroups(spaced).map(group=>group.count),[2,1]);
- assert.deepEqual(B.noteSeparatorGroups('stories/a/1 V\nreel/untagged\n\nreel/B S').map(group=>group.count),[2]);
+ assert.equal(B.noteSeparatorOffsets(spaced).length,3);
+ assert.deepEqual(B.noteSeparatorGroups(spaced).map(group=>group.count),[2,1,1]);
+ assert.deepEqual(B.noteSeparatorGroups('stories/a/1 V\nreel/untagged\n\nreel/B S').map(group=>group.count),[2,1]);
  assert.deepEqual(B.parseUrls(spaced),B.parseUrls(text));
  assert.doesNotMatch(B.mergeDailyNotes('',spaced),/- -/);
  assert.equal(B.spaceNoteGroups('Özel not\n\nreel/B V\n\n\n'), 'Özel not\n\nreel/B V\n\n\n');
 });
 
 
+test('the final tagged notes group receives a visual closing divider',()=>{
+ const value='stories/end/1 V\nreel/end2 V';
+ assert.deepEqual(B.noteSeparatorGroups(value),[{offset:value.length,count:2,afterEnd:true}]);
+ const withBlank=value+'\n';
+ assert.deepEqual(B.noteSeparatorGroups(withBlank),[{offset:withBlank.length,count:2,afterEnd:false}]);
+});
+test('visual tag ranges highlight only short A/S/V labels immediately after valid Instagram links',()=>{
+ const value=[
+  'stories/a/1 V',
+  'stories/b/2 A12',
+  'reel/Abc SX1',
+  'stories/c/3 V+S',
+  'reel/Clip SClip',
+  'stories/d/4 VS2s',
+  'Serbest açıklama A',
+  'A stories/e/5'
+ ].join('\n');
+ const ranges=B.noteVisualTags(value);
+ assert.deepEqual(ranges.map(range=>range.text),['V','A12','SX1']);
+ assert.deepEqual(ranges.map(range=>value.slice(range.start,range.end)),['V','A12','SX1']);
+});
 test('daily archive retains every accepted URL form after notes are removed or retagged',()=>{
  const variants=['www.instagram.com/stories/b/2?utm_source=x','instagram.com/stories/b/2?psln=x','stories/b/2?utm_source=x','https://instagram.com/stories/b/2/?igsh=x','(stories/b/2/)','(www.instagram.com/stories/b/2)'];
  for(const url of variants) {

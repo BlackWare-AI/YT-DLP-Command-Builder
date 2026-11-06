@@ -30,8 +30,8 @@ const root=path.resolve(__dirname,'..');
    await page.clock.runFor(800);
    const shown=await page.inputValue('#notes');
    assert.equal(shown,'stories/user.a/1 V\nstories/user.c/3 V\n\nreel/B S\n\nreel/D V1s');
-   assert.equal(await page.locator('.notes-group-divider').count(),2);
-   assert.deepEqual(await page.locator('.notes-group-count').allTextContents(),edition==='en'?['2 links','1 link']:['2 bağlantı','1 bağlantı']);
+   assert.equal(await page.locator('.notes-group-divider').count(),3);
+   assert.deepEqual(await page.locator('.notes-group-count').allTextContents(),edition==='en'?['2 links','1 link','1 link']:['2 bağlantı','1 bağlantı','1 bağlantı']);
    await page.focus('#notes');await page.keyboard.press('ControlOrMeta+A');await page.keyboard.press('ControlOrMeta+C');
    const copied=await page.evaluate(()=>navigator.clipboard.readText());assert.equal(copied,shown);assert.doesNotMatch(copied,/- -/);
    const log=()=>page.evaluate(()=>state.notesDailyHistory.find(x=>x.date==='2026-10-29').notes);
@@ -84,7 +84,7 @@ const root=path.resolve(__dirname,'..');
    await recovered.fill('#notes',rows);await recovered.locator('#notes').blur();
    for(const width of [320,390,650]) {
     await recovered.setViewportSize({width,height:844});await recovered.clock.runFor(50);
-    assert.equal(await recovered.locator('.notes-group-divider').count(),2);
+    assert.equal(await recovered.locator('.notes-group-divider').count(),3);
     const dimensions=await recovered.evaluate(()=>Array.from(document.querySelectorAll('.notes-group-divider'),node=>({height:node.clientHeight,line:parseFloat(getComputedStyle(node).lineHeight),overflow:getComputedStyle(node).overflow,select:getComputedStyle(node).userSelect})));
     assert.ok(dimensions.every(r=>Math.abs(r.height-r.line)<=1 && r.overflow==='hidden' && r.select==='none'),JSON.stringify({edition,width,dimensions}));
     await recovered.locator('#notes').evaluate(el=>{el.scrollTop=100;el.dispatchEvent(new Event('scroll'));});
@@ -93,9 +93,19 @@ const root=path.resolve(__dirname,'..');
    // Capture a normal active tab; the fake clock above is only for archive timing tests.
    const visual=await context.newPage();await visual.goto(url);await visual.click('#notesBtn');
    await visual.fill('#notes',paste);await visual.locator('#notes').blur();
-   await visual.waitForFunction(()=>document.querySelectorAll('.notes-group-divider').length===2);
+   await visual.waitForFunction(()=>document.querySelectorAll('.notes-group-divider').length===3);
    fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
    await visual.screenshot({path:path.join(root,'test-results/notes-114-'+edition+'.png')});
+   // Only compact A/S/V labels immediately after valid Instagram links get white pills.
+   const tagged='stories/label.v/1 V\nstories/label.a/2 A12\nreel/LabelS SX1\nstories/label.plus/4 V+S\nreel/Clip SClip\nstories/label.long/5 VS2s\nSerbest açıklama A\nA stories/reversed/6';
+   await visual.fill('#notes',tagged);
+   await visual.waitForFunction(()=>document.querySelectorAll('.notes-inline-tag').length===3);
+   assert.deepEqual((await visual.locator('.notes-inline-tag').allTextContents()).sort(),['A12','SX1','V']);
+   assert.equal(await visual.inputValue('#notes'),tagged);
+   assert.equal(await visual.locator('.notes-inline-tag').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
+   assert.equal(await visual.locator('.notes-inline-tag').first().evaluate(el=>getComputedStyle(el).color),'rgb(0, 0, 0)');
+   await visual.focus('#notes');await visual.keyboard.press('ControlOrMeta+A');await visual.keyboard.press('ControlOrMeta+C');
+   assert.equal(await visual.evaluate(()=>navigator.clipboard.readText()),tagged);
    // Old logs are filtered in the viewer too; the editable note is not trimmed.
    const draft='reel/AB V\nKullanıcının serbest açıklaması korunur.';
    await visual.fill('#notes',draft);await visual.locator('#notes').blur();
@@ -132,7 +142,8 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await fallback.evaluate(()=>typeof window.handleBack==='function'),true);
   await fallback.click('#notesBtn');await fallback.fill('#notes','https://www.instagram.com/stories/old.webview/1 V\n\nhttps://www.instagram.com/reel/oldwebview S');
   await fallback.locator('.notes-group-count').first().waitFor({state:'visible'});
-  assert.deepEqual(await fallback.locator('.notes-group-count').allTextContents(),['1 bağlantı']);
+  assert.equal(await fallback.locator('.notes-group-divider').count(),2);
+  assert.deepEqual(await fallback.locator('.notes-group-count').allTextContents(),['1 bağlantı','1 bağlantı']);
   assert.deepEqual(fallbackErrors,[]);
   await fallbackContext.close();
  } finally {await browser.close();await new Promise(r=>server.close(r));}
