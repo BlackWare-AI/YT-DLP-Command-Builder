@@ -203,6 +203,9 @@ def main():
             paired_data={**frame_data,'settings':{**frame_data['settings'],'mode':'frame_sclip'}}
             sclip_output=output/'SClip'
             for engine in ['experimental','normal']:
+                # Keep the pair test independent from the earlier StillClip test and
+                # from the previous engine run; duplicate detection has its own unit test.
+                shutil.rmtree(sclip_output,ignore_errors=True)
                 paired_data['settings']['engine']=engine
                 before_frames={p.name for p in frame_output.glob('*.jpg')}
                 before_clips={p.name for p in sclip_output.glob('*.mp4')} if sclip_output.exists() else set()
