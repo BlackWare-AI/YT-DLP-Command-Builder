@@ -36,6 +36,7 @@ html.notes-open,html.notes-open body{overflow:hidden!important;overscroll-behavi
 /* Visual-only single-row dividers; the textarea and clipboard contain no dashes. */
 .notes-separator-layer{position:absolute;inset:1px;overflow:hidden;border-radius:11px;pointer-events:none;user-select:none;-webkit-user-select:none}
 .notes-group-divider{position:absolute;top:0;overflow:hidden;white-space:nowrap;color:#626262;pointer-events:none;user-select:none;-webkit-user-select:none}
+.notes-group-count{position:absolute;top:0;right:0;padding-left:6px;background:#000;color:#aaa;font-size:10px;font-weight:500;text-align:right;pointer-events:none;user-select:none;-webkit-user-select:none}
 
 /* Remove only the outer borders of the requested main cards. */
 .setup,.links-section,.item-section,.item-section.has-selection,#cutSection,#frameSection,.command-section{border-color:transparent;margin-bottom:8px}
