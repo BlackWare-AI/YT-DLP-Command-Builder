@@ -103,7 +103,7 @@ main>section{padding-inline:0;border-inline-width:0}
 /* Remove only the small frames around the mode artwork, not the mode cards. */
 .mode-grid .mode-symbol{border:0}
 
-/* Keep the copy glyph centered while rendering its artwork at the approved 30 px size. */
+/* Keep the copy glyph centered at 20 px. */
 #copy .mode-symbol{width:40px;height:40px}
 #copy .copy-icon{width:30px;height:30px}
 
@@ -119,5 +119,5 @@ main>section{padding-inline:0;border-inline-width:0}
 #modeHint[data-mode="frame_sclip"]{white-space:nowrap}
 @media(max-width:350px){#modeHint[data-mode="frame_sclip"]{font-size:10px}}
 .action-buttons #copy.copy-mode{justify-content:center;gap:9px}
-.action-buttons #copy .mode-symbol{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
+.action-buttons #copy .mode-symbol{display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 20px}
 .action-buttons #copy .copy-icon{width:20px;height:20px}
