@@ -131,6 +131,7 @@ const root=path.resolve(__dirname,'..');
   await fallback.goto('http://127.0.0.1:'+server.address().port+'/');
   assert.equal(await fallback.evaluate(()=>typeof window.handleBack==='function'),true);
   await fallback.click('#notesBtn');await fallback.fill('#notes','stories/old.webview/1 V\n\nreel/old.webview S');
+  await fallback.locator('.notes-group-count').first().waitFor({state:'visible'});
   assert.deepEqual(await fallback.locator('.notes-group-count').allTextContents(),['1 bağlantı']);
   assert.deepEqual(fallbackErrors,[]);
   await fallbackContext.close();
