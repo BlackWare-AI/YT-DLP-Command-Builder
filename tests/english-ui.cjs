@@ -201,6 +201,7 @@ assert.equal(await page.evaluate(()=>document.querySelector('#modes [data-value=
    save();hydrate();
   });
   await page.fill('#links','https://instagram.com/stories/example.user');
+  assert.match(await page.textContent('#itemScope'),/video items only; photos are skipped.*enter 1 and 2/);
   assert.equal(await page.textContent('#count'),'1 link');
   await page.fill('#itemOnly','0');
   assert.match(await page.textContent('#error'),/integer of 1 or greater/);
