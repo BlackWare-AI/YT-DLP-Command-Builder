@@ -142,7 +142,8 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await fallback.evaluate(()=>typeof window.handleBack==='function'),true);
   await fallback.click('#notesBtn');await fallback.fill('#notes','https://www.instagram.com/stories/old.webview/1 V\n\nhttps://www.instagram.com/reel/oldwebview S');
   await fallback.locator('.notes-group-count').first().waitFor({state:'visible'});
-  assert.equal(await fallback.locator('.notes-group-divider').count(),2);\n  assert.deepEqual(await fallback.locator('.notes-group-count').allTextContents(),['1 bağlantı','1 bağlantı']);
+  assert.equal(await fallback.locator('.notes-group-divider').count(),2);
+  assert.deepEqual(await fallback.locator('.notes-group-count').allTextContents(),['1 bağlantı','1 bağlantı']);
   assert.deepEqual(fallbackErrors,[]);
   await fallbackContext.close();
  } finally {await browser.close();await new Promise(r=>server.close(r));}
