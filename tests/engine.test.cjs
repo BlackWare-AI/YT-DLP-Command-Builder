@@ -473,7 +473,7 @@ test('Frame + SClip rotation metadata preserves JPG dimensions and clip output',
   const kind='rotation'+index,source=path.join(f.root,kind+'.mkv');
   execFileSync('ffmpeg',['-nostdin','-v','error','-display_rotation',String(angle),'-i',base,'-c','copy','-f','mp4',source]);
   const result=f.run(undefined,{engine:index%2?'normal':'experimental'},{FRAME_KIND:kind});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1/);
-  const jpg=path.join(f.output,'account-20261029-1530-'+String(index+1).padStart(2,'0')+'.jpg');
+  const jpg=path.join(f.output,'account-20261029-1530-01.jpg');
   const meta=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-of','json',jpg],{encoding:'utf8'})).streams[0];
   assert.deepEqual([meta.width,meta.height],angle===180?[96,64]:[64,96]);assert.equal(meta.pix_fmt,'yuvj444p');assert.deepEqual(fs.readFileSync(jpg),f.expected(source,.5));f.clean();
  }
