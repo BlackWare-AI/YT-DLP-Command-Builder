@@ -108,8 +108,8 @@ public final class AppSmokeTest extends InstrumentationTestCase {
             js("document.getElementById('notesBtn').click();document.getElementById('notes').value='stories/archive.user/1 V7';document.getElementById('notes').dispatchEvent(new Event('input'));document.getElementById('notesClose').click();true");
             assertEquals("true",js("state.notesDailyHistory.length===1 && state.notesDailyHistory[0].notes.includes('archive.user/1 V7') && state.notesDailyHistory[0].notes.includes('reel/Archive S') && state.notesDailyHistory[0].notes.split('archive.user/1').length===2"));
             js("document.getElementById('notesBtn').click();document.getElementById('notes').value='stories/archive.user/1 V\\nreel/Archive S';document.getElementById('notes').dispatchEvent(new Event('input'));document.getElementById('notes').dispatchEvent(new Event('blur'));true");
-            await("document.querySelectorAll('.notes-group-divider').length===1");
-            assertEquals("true",js("!document.getElementById('notes').value.includes('- -') && document.querySelector('.notes-separator-layer').getAttribute('aria-hidden')==='true' && document.querySelector('.notes-group-count').textContent==='1 bağlantı'"));
+            await("document.querySelectorAll('.notes-group-divider').length===2");
+            assertEquals("true",js("!document.getElementById('notes').value.includes('- -') && document.querySelector('.notes-separator-layer').getAttribute('aria-hidden')==='true' && Array.from(document.querySelectorAll('.notes-group-count')).map(el=>el.textContent).join(',')==='1 bağlantı,1 bağlantı'"));
             assertEquals("true",js("window.prepareExit() && JSON.parse(Android.getState()).notesDailyHistory.length===1"));
         } finally { getInstrumentation().runOnMainSync(() -> activity.finish()); }
     }
