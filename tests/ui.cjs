@@ -462,7 +462,7 @@ const root=path.resolve(__dirname,'..');
   await page.click('#notesBtn');
   assert.equal(await page.locator('#notesClear').evaluate(el=>getComputedStyle(el).bottom),'8px');
   assert.equal(await page.locator('#notesPaste').evaluate(el=>getComputedStyle(el).bottom),'8px');
-  assert.equal(await page.locator('#notes').evaluate(el=>getComputedStyle(el).paddingLeft),'14px');
+  assert.equal(await page.locator('#notes').evaluate(el=>getComputedStyle(el).paddingLeft),'8px');
   assert.equal(await page.locator('#notes').evaluate(el=>getComputedStyle(el).paddingBottom),'64px');
   await page.click('#notesClear');assert.equal(await page.locator('#confirmDialog').isVisible(),true);
   assert.match(await page.textContent('#confirmMessage'),/Not Günlüğü ve işlem geçmişi korunur/);
