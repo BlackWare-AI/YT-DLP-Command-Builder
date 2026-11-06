@@ -429,7 +429,7 @@ test('visual group gaps are single rows, stable, and contain no separator charac
  assert.equal(B.spaceNoteGroups(spaced),spaced);
  assert.equal(B.noteSeparatorOffsets(spaced).length,2);
  assert.deepEqual(B.noteSeparatorGroups(spaced).map(group=>group.count),[2,1]);
- assert.deepEqual(B.noteSeparatorGroups('stories/a/1 V\\nreel/untagged\\n\\nreel/B S').map(group=>group.count),[2]);
+ assert.deepEqual(B.noteSeparatorGroups('stories/a/1 V\nreel/untagged\n\nreel/B S').map(group=>group.count),[2]);
  assert.deepEqual(B.parseUrls(spaced),B.parseUrls(text));
  assert.doesNotMatch(B.mergeDailyNotes('',spaced),/- -/);
  assert.equal(B.spaceNoteGroups('Özel not\n\nreel/B V\n\n\n'), 'Özel not\n\nreel/B V\n\n\n');
