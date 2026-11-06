@@ -191,7 +191,7 @@ const root=path.resolve(__dirname,'..');
     const style=getComputedStyle(svg);return {width:parseFloat(style.width),height:parseFloat(style.height),stroke:svg.getAttribute('stroke-width'),cap:svg.getAttribute('stroke-linecap'),join:svg.getAttribute('stroke-linejoin')};
   }));
   assert.ok(iconFamily.every(icon=>icon.width===20&&icon.height===20&&icon.stroke==='1.5'&&icon.cap==='round'&&icon.join==='round'));
-  assert.equal(await page.locator('#copy svg').evaluate(svg=>parseFloat(getComputedStyle(svg).width)),30);
+  assert.equal(await page.locator('#copy svg').evaluate(svg=>parseFloat(getComputedStyle(svg).width)),20);
   assert.equal(await recordActions.nth(1).locator('rect').getAttribute('rx'),'3');
   for(const width of [320,390,650]) {
     await page.setViewportSize({width,height:844});
@@ -397,6 +397,7 @@ const root=path.resolve(__dirname,'..');
   for(const mode of ['av','video','audio','still']) {await page.click('#modes [data-value='+mode+']');assert.match(await page.textContent('#output'),/--playlist-items "4:6"/);}
   await page.fill('#links','https://instagram.com/reel/direct');assert.equal(await page.locator('#itemSection').isVisible(),false);assert.doesNotMatch(await page.textContent('#output'),/--playlist-items/);
   await page.fill('#links','https://instagram.com/stories/collection.user');
+  assert.match(await page.textContent('#itemScope'),/fotoğraflar sayılmaz.*burada 1 ve 2 kullanılır/);
   await page.evaluate(()=>{window.writeForRange=navigator.clipboard.writeText.bind(navigator.clipboard);navigator.clipboard.writeText=async()=>{throw Error('Sıra pano hatası');};});
   await page.click('#copy');await page.waitForFunction(()=>document.getElementById('status').textContent.includes('Sıra pano hatası'));
   assert.equal(await page.inputValue('#itemAfter'),'3');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('builder.state')).cuts.length),2);assert.match(await page.inputValue('#links'),/collection.user/);
@@ -461,7 +462,7 @@ const root=path.resolve(__dirname,'..');
   await page.click('#notesBtn');
   assert.equal(await page.locator('#notesClear').evaluate(el=>getComputedStyle(el).bottom),'8px');
   assert.equal(await page.locator('#notesPaste').evaluate(el=>getComputedStyle(el).bottom),'8px');
-  assert.equal(await page.locator('#notes').evaluate(el=>getComputedStyle(el).paddingLeft),'14px');
+  assert.equal(await page.locator('#notes').evaluate(el=>getComputedStyle(el).paddingLeft),'8px');
   assert.equal(await page.locator('#notes').evaluate(el=>getComputedStyle(el).paddingBottom),'64px');
   await page.click('#notesClear');assert.equal(await page.locator('#confirmDialog').isVisible(),true);
   assert.match(await page.textContent('#confirmMessage'),/Not Günlüğü ve işlem geçmişi korunur/);

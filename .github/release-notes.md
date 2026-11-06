@@ -1,13 +1,13 @@
-Türkçe
-- Kesit + Kare simgesi 1 px küçültüldü; mod kartı açıklaması **Kısa kesit ve kare** olarak kısaltıldı.
-- Yalnızca Kesit + Kare modunun bilgi satırı tek satıra sığacak şekilde kısaltıldı.
-- Kopyala düğmesindeki simge 20 px'e indirildi ve metinle birlikte yatay/dikey ortalandı. Düğme ölçüleri ve beyaz dolu görünümü korundu.
-- Kesit + Kare komutu için gerçek yt-dlp + FFmpeg entegrasyon doğrulaması eklendi. İlk saniyelik sessiz MP4, eşleşen JPG ve geçici dosya temizliği test ediliyor.
-- Android sürümü 1.2.0 / versionCode 22.
+### Türkçe
+- Link Notları etiket ayraçlarının sağında, bir sonraki etikete kadar olan bağlantıların toplamı gösterilir. Sayaç metin alanına veya panoya eklenmez.
+- Story/Post sıra açıklaması eklendi: sıra numaraları yalnızca video içeriklerini sayar; fotoğraflar atlanır.
+- Eski Android WebView sürümlerinde ResizeObserver yoksa pencere yeniden boyutlandırma yedeği kullanılır.
+- Frame + SClip SHA-256 tekrar kontrolü ve rotasyon/çoklu bağlantı testleri güncellendi.
+- Android sürümü 1.2.1 / versionCode 23.
 
-English
-- Reduced the Frame + SClip mode icon by 1 px and shortened its card subtitle to **Short clip and frame**.
-- Shortened only the Frame + SClip mode hint so it fits on one line.
-- Reduced the Copy icon to 20 px and centered it with the label. Button dimensions and filled appearance are preserved.
-- Added a real yt-dlp + FFmpeg integration check for Frame + SClip, including the first-second silent MP4, matching JPG and temporary-file cleanup.
-- Updated Android version to 1.2.0 / versionCode 22.
+### English
+- Link Notes tag dividers show the total links up to (but not including) the next tag. Count labels are visual only and never enter the text or clipboard.
+- Added Story/Post selection guidance: positions count video items only; photos are skipped.
+- Older Android WebViews fall back to window resize events when ResizeObserver is unavailable.
+- Updated Frame + SClip SHA-256 duplicate, rotation and multi-link tests.
+- Updated Android version to 1.2.1 / versionCode 23.

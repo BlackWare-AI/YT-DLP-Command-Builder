@@ -140,7 +140,8 @@ function renderSelection(urls) {
   const active=kinds.length && Object.keys(state.selection).some(k=>String(state.selection[k]).trim());
   $('itemSection').classList.toggle('has-selection',Boolean(active));
   $('itemBadge').textContent=active ? 'Etkin' : 'İsteğe bağlı';
-  $('itemScope').textContent=kinds.includes('profile') ? 'Profil bağlantısı gönderi listesi içindir; motorun profil desteğine bağlıdır. Story listesi için /stories/hesap/ kullanın. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır.' : 'Story hesap listesi veya post içindeki öğeler seçilir. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır; tarih sırası garanti edilmez.';
+  const scope=kinds.includes('profile') ? 'Profil bağlantısı gönderi listesi içindir; motorun profil desteğine bağlıdır. Story listesi için /stories/hesap/ kullanın. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır.' : 'Story hesap listesi veya post içindeki öğeler seçilir. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır; tarih sırası garanti edilmez.';
+  $('itemScope').textContent=scope+' Sıra numaraları yalnızca video içeriklerine göredir; fotoğraflar sayılmaz. Örneğin 6 hikâyenin 2. ve 5. öğeleri videoysa, burada 1 ve 2 kullanılır.';
 }
 function preview() {
   try {
@@ -431,7 +432,7 @@ async function importBackupText(raw) {
 window.receiveBackupImport=importBackupText;
 $('importSettings').onclick=()=>{if(native && typeof native.importBackup==='function') native.importBackup();else $('importFile').click();};
 $('importFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>20*1024*1024)throw Error('Dosya 20 MB sınırını aşıyor.');await importBackupText(await file.text());}catch(err){alert(err.message);}};
-$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.2.0',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
+$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.2.1',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
 $('export').onclick=()=>exportText(allHistoryText(),'yt-dlp-history.txt');
 function saveNotes() {
   state.notes=$('notes').value;
@@ -462,7 +463,7 @@ function insertNoteText(text) {
   const lineStart=Math.max(prefix.lastIndexOf('\n'),prefix.lastIndexOf('\r'))+1;
   const previousLine=prefix.slice(lineStart).trim();
   const cleaned=Builder.cleanNoteUrls(text);
-  const firstLine=cleaned.split(/\r?\n/).find(line=>line.trim())?.trim() || '';
+  const firstLine=(cleaned.split(/\r?\n/).find(line=>line.trim()) || '').trim();
   const addLineBreak=Boolean(prefix && !/\s$/.test(prefix) &&
     Builder.parseUrls(previousLine,true).length && Builder.parseUrls(firstLine,true).length);
   editor.setRangeText((addLineBreak?'\n':'')+cleaned,start,end,'end');

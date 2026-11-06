@@ -153,7 +153,7 @@ test('Frame + SClip skips identical bytes even when the saved filename differs',
 test('Frame continues after a duplicate video within the same URL and saves later new content',{skip:!ffmpegAvailable},t=>{
  const f=frameFixture(t);fs.mkdirSync(f.clipOutput,{recursive:true});
  fs.copyFileSync(f.sources.fps30,path.join(f.clipOutput,'old-name.mkv'));
- const result=f.run('https://instagram.com/stories/account/mixed');
+ const result=f.run('https://instagram.com/stories/account.mixed/123');
  assert.equal(result.status,0,result.stderr);
  assert.match(result.stdout,/Başarılı çift: 1 \| Tekrarlanan: 1 \| Başarısız: 0/);
  assert.deepEqual(fs.readdirSync(f.output),['new-01.jpg']);
@@ -428,6 +428,8 @@ test('visual group gaps are single rows, stable, and contain no separator charac
  assert.equal(spaced,'stories/a/1 V\nstories/c/3 V\n\nreel/B V1s\n\nreel/C S');
  assert.equal(B.spaceNoteGroups(spaced),spaced);
  assert.equal(B.noteSeparatorOffsets(spaced).length,2);
+ assert.deepEqual(B.noteSeparatorGroups(spaced).map(group=>group.count),[2,1]);
+ assert.deepEqual(B.noteSeparatorGroups('stories/a/1 V\nreel/untagged\n\nreel/B S').map(group=>group.count),[2]);
  assert.deepEqual(B.parseUrls(spaced),B.parseUrls(text));
  assert.doesNotMatch(B.mergeDailyNotes('',spaced),/- -/);
  assert.equal(B.spaceNoteGroups('Özel not\n\nreel/B V\n\n\n'), 'Özel not\n\nreel/B V\n\n\n');
@@ -465,10 +467,13 @@ test('Frame + SClip rotation metadata preserves JPG dimensions and clip output',
  const f=frameFixture(t),base=path.join(f.root,'rotation-base.mp4');
  execFileSync('ffmpeg',['-nostdin','-v','error','-f','lavfi','-i','testsrc2=size=96x64:rate=30:duration=1','-c:v','libx264',base]);
  for(const [index,angle] of [90,180,270,-90].entries()) {
+  // This test checks orientation, not duplicate detection; isolate every source pair.
+  fs.rmSync(f.output,{recursive:true,force:true});
+  fs.rmSync(f.clipOutput,{recursive:true,force:true});
   const kind='rotation'+index,source=path.join(f.root,kind+'.mkv');
   execFileSync('ffmpeg',['-nostdin','-v','error','-display_rotation',String(angle),'-i',base,'-c','copy','-f','mp4',source]);
   const result=f.run(undefined,{engine:index%2?'normal':'experimental'},{FRAME_KIND:kind});assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/Başarılı çift: 1/);
-  const jpg=path.join(f.output,'account-20261029-1530-'+String(index+1).padStart(2,'0')+'.jpg');
+  const jpg=path.join(f.output,'account-20261029-1530-01.jpg');
   const meta=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-of','json',jpg],{encoding:'utf8'})).streams[0];
   assert.deepEqual([meta.width,meta.height],angle===180?[96,64]:[64,96]);assert.equal(meta.pix_fmt,'yuvj444p');assert.deepEqual(fs.readFileSync(jpg),f.expected(source,.5));f.clean();
  }

@@ -36,6 +36,7 @@ html.notes-open,html.notes-open body{overflow:hidden!important;overscroll-behavi
 /* Visual-only single-row dividers; the textarea and clipboard contain no dashes. */
 .notes-separator-layer{position:absolute;inset:1px;overflow:hidden;border-radius:11px;pointer-events:none;user-select:none;-webkit-user-select:none}
 .notes-group-divider{position:absolute;top:0;overflow:hidden;white-space:nowrap;color:#626262;pointer-events:none;user-select:none;-webkit-user-select:none}
+.notes-group-count{position:absolute;top:0;right:0;padding-left:6px;background:#000;color:#aaa;font-size:10px;font-weight:500;text-align:right;pointer-events:none;user-select:none;-webkit-user-select:none}
 
 /* Remove only the outer borders of the requested main cards. */
 .setup,.links-section,.item-section,.item-section.has-selection,#cutSection,#frameSection,.command-section{border-color:transparent;margin-bottom:8px}
@@ -102,7 +103,7 @@ main>section{padding-inline:0;border-inline-width:0}
 /* Remove only the small frames around the mode artwork, not the mode cards. */
 .mode-grid .mode-symbol{border:0}
 
-/* Keep the copy glyph centered while rendering its artwork at the approved 30 px size. */
+/* Keep the copy glyph centered at 20 px. */
 #copy .mode-symbol{width:40px;height:40px}
 #copy .copy-icon{width:30px;height:30px}
 
@@ -118,5 +119,5 @@ main>section{padding-inline:0;border-inline-width:0}
 #modeHint[data-mode="frame_sclip"]{white-space:nowrap}
 @media(max-width:350px){#modeHint[data-mode="frame_sclip"]{font-size:10px}}
 .action-buttons #copy.copy-mode{justify-content:center;gap:9px}
-.action-buttons #copy .mode-symbol{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px}
+.action-buttons #copy .mode-symbol{display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 20px}
 .action-buttons #copy .copy-icon{width:20px;height:20px}

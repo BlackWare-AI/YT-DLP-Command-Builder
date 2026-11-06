@@ -170,18 +170,25 @@
     }
     return result.join('\n');
   }
-  function noteSeparatorOffsets(text) {
-    const offsets=[];let position=0,tag=null,blank=null;
+  function noteSeparatorGroups(text) {
+    const groups=[];let position=0,tag=null,blank=null,count=0;
     for(const line of String(text).split('\n')) {
       const next=noteFormatTag(line);
       if(next!==null) {
-        if(tag!==null && tag!==next && blank!==null) offsets.push(blank);
+        if(tag!==null && tag!==next) {
+          if(blank!==null) groups.push({offset:blank,count});
+          count=0;
+        }
         tag=next;
       }
+      if(tag!==null) count+=parseUrls(line,true).length;
       blank=line.trim() ? null : position;
       position+=line.length+1;
     }
-    return offsets;
+    return groups;
+  }
+  function noteSeparatorOffsets(text) {
+    return noteSeparatorGroups(text).map(group=>group.offset);
   }
   function parseUrls(text, skipInvalid) {
     const urls = [];
@@ -595,5 +602,5 @@
     return {command:args.join(' \\\n  '), urls, settings:s,
       cuts:['av','video'].includes(s.mode) ? cuts : [], selection:input.selection || {}, commandCount:1};
   }
-  return {defaults, normalizeSettings, quote, shellPath, collectionKind, selectionSpec, normalizeBareUsernames, cleanNoteUrls, cleanNotes, mergeDailyNotes, spaceNoteGroups, noteSeparatorOffsets, countNoteLinks, parseUrls, removeUrl, validateCut, template, storyMetadata, build};
+  return {defaults, normalizeSettings, quote, shellPath, collectionKind, selectionSpec, normalizeBareUsernames, cleanNoteUrls, cleanNotes, mergeDailyNotes, spaceNoteGroups, noteSeparatorOffsets, noteSeparatorGroups, countNoteLinks, parseUrls, removeUrl, validateCut, template, storyMetadata, build};
 });
