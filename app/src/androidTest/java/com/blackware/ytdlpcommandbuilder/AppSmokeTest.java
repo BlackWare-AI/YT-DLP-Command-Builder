@@ -133,6 +133,9 @@ public final class AppSmokeTest extends InstrumentationTestCase {
         assertTrue("Launcher icon must be packaged",getInstrumentation().getTargetContext().getApplicationInfo().icon!=0);
         assertFalse("Vertical scroll indicator is hidden",web.isVerticalScrollBarEnabled());
         assertFalse("Horizontal scroll indicator is hidden",web.isHorizontalScrollBarEnabled());
+        assertFalse("WebView zoom support is disabled",web.getSettings().supportZoom());
+        assertFalse("Built-in WebView zoom controls are disabled",web.getSettings().getBuiltInZoomControls());
+        assertFalse("WebView zoom controls are hidden",web.getSettings().getDisplayZoomControls());
         try {
             await("document.readyState==='complete' && typeof window.handleBack==='function'");
             js("document.getElementById('links').value='https://instagram.com/stories/user.name/123?utm_source=ahttps://instagram.com/reel/abc/';document.getElementById('links').dispatchEvent(new Event('input'));document.querySelector('#engines [data-value=normal]').click();document.getElementById('addCut').click();document.getElementById('addCut').click();true");
