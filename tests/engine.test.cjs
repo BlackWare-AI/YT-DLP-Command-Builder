@@ -437,9 +437,9 @@ test('visual group gaps are single rows, stable, and contain no separator charac
 
 
 test('the final tagged notes group receives a visual closing divider',()=>{
- const value='stories/end/1 V\\nreel/end/2 V';
+ const value='stories/end/1 V\nreel/end/2 V';
  assert.deepEqual(B.noteSeparatorGroups(value),[{offset:value.length,count:2,afterEnd:true}]);
- const withBlank=value+'\\n';
+ const withBlank=value+'\n';
  assert.deepEqual(B.noteSeparatorGroups(withBlank),[{offset:withBlank.length,count:2,afterEnd:false}]);
 });
 test('visual tag ranges highlight only short A/S/V labels immediately after valid Instagram links',()=>{
