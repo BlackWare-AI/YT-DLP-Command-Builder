@@ -37,8 +37,8 @@ window.NotesUI={attach(editor) {
         Object.assign(marker.style,{font:style.font,letterSpacing:style.letterSpacing,wordSpacing:style.wordSpacing});
         mirror.append(marker);tagMarkers.push({marker,text:operation.text});previous=operation.end;
       } else {
-        if(operation.afterEnd && !/[\\r\\n]$/.test(value)) mirror.append(document.createTextNode('\\n'));
-        const marker=document.createElement('span');marker.textContent='\\u200b';mirror.append(marker);
+        if(operation.afterEnd && !/[\r\n]$/.test(value)) mirror.append(document.createTextNode('\n'));
+        const marker=document.createElement('span');marker.textContent='\u200b';mirror.append(marker);
         markers.push({marker,count:operation.count});previous=operation.offset;
       }
     }
