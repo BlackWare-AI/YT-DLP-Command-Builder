@@ -209,7 +209,7 @@ def main():
                 paired_cmd=run(['node','-e',frame_script,json.dumps(paired_data)],cwd=ROOT,text=True).stdout
                 assert '--download-sections "*0-1"' in paired_cmd and '-f "bv"' in paired_cmd
                 paired_result=run(['bash','-c',paired_cmd],env={**env,'HOME':str(frame_home),'PREFIX':str(frame_prefix),'PYTHONPATH':pythonpath,'FIXTURE_FRAME':'1','TMPDIR':str(frame_home/'missing'/'tmp')},text=True)
-                assert 'Başarılı çift: 1 | Başarısız: 0' in paired_result.stdout,paired_result.stdout
+                assert 'Başarılı çift: 1 | Tekrarlanan: 0 | Başarısız: 0' in paired_result.stdout,paired_result.stdout
                 new_frames=[p for p in frame_output.glob('*.jpg') if p.name not in before_frames]
                 new_clips=[p for p in sclip_output.glob('*.mp4') if p.name not in before_clips]
                 assert len(new_frames)==len(new_clips)==1,paired_result.stdout
