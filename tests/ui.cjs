@@ -397,6 +397,7 @@ const root=path.resolve(__dirname,'..');
   for(const mode of ['av','video','audio','still']) {await page.click('#modes [data-value='+mode+']');assert.match(await page.textContent('#output'),/--playlist-items "4:6"/);}
   await page.fill('#links','https://instagram.com/reel/direct');assert.equal(await page.locator('#itemSection').isVisible(),false);assert.doesNotMatch(await page.textContent('#output'),/--playlist-items/);
   await page.fill('#links','https://instagram.com/stories/collection.user');
+  assert.match(await page.textContent('#itemScope'),/fotoğraflar sayılmaz.*burada 1 ve 2 kullanılır/);
   await page.evaluate(()=>{window.writeForRange=navigator.clipboard.writeText.bind(navigator.clipboard);navigator.clipboard.writeText=async()=>{throw Error('Sıra pano hatası');};});
   await page.click('#copy');await page.waitForFunction(()=>document.getElementById('status').textContent.includes('Sıra pano hatası'));
   assert.equal(await page.inputValue('#itemAfter'),'3');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('builder.state')).cuts.length),2);assert.match(await page.inputValue('#links'),/collection.user/);
