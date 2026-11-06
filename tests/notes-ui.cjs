@@ -20,7 +20,11 @@ const root=path.resolve(__dirname,'..');
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.clock.install({time:new Date('2026-10-29T12:00:00+03:00')});
    const url='http://127.0.0.1:'+server.address().port+(edition==='en'?'/en/':'/');
-   await page.goto(url);await page.click('#notesBtn');
+   await page.goto(url);
+   const zoomPolicy=await page.evaluate(()=>({viewport:document.querySelector('meta[name="viewport"]')?.content||'',root:getComputedStyle(document.documentElement).touchAction,body:getComputedStyle(document.body).touchAction}));
+   assert.match(zoomPolicy.viewport,/maximum-scale=1/);assert.match(zoomPolicy.viewport,/user-scalable=no/);
+   assert.equal(zoomPolicy.root,'pan-x pan-y');assert.equal(zoomPolicy.body,'pan-x pan-y');
+   await page.click('#notesBtn');
    assert.equal(await page.locator('#notes').evaluate(el=>el===document.activeElement),false);
    const paste='https://instagram.com/stories/user.a/1?utm_source=x V\nreel/B S\nstories/user.c/3 V\nreel/D V1s';
    await page.evaluate(text=>{
