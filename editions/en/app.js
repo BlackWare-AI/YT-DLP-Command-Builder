@@ -110,6 +110,7 @@ const english={
   "Etkin": "Active",
   "Profil bağlantısı gönderi listesi içindir; motorun profil desteğine bağlıdır. Story listesi için /stories/hesap/ kullanın. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır.": "Profile links request a post list, depending on engine support. Use /stories/username/ for Stories. Positions follow the list returned by yt-dlp.",
   "Story hesap listesi veya post içindeki öğeler seçilir. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır; tarih sırası garanti edilmez.": "Select items in a Story account list or a post. Positions follow the list returned by yt-dlp; chronological order is not guaranteed.",
+  "Sıra numaraları yalnızca video içeriklerine göredir; fotoğraflar sayılmaz. Örneğin 6 hikâyenin 2. ve 5. öğeleri videoysa, burada 1 ve 2 kullanılır.": "Positions count video items only; photos are skipped. For example, if items 2 and 5 of 6 Stories are videos, enter 1 and 2.",
   "Komut hazır": "Command ready",
   "Pano işlemi başarısız.": "Clipboard operation failed.",
   "Silme işlemi": "Delete confirmation",
@@ -360,7 +361,8 @@ function renderSelection(urls) {
   const active=kinds.length && Object.keys(state.selection).some(k=>String(state.selection[k]).trim());
   $('itemSection').classList.toggle('has-selection',Boolean(active));
   $('itemBadge').textContent=active ? t('Etkin') : t('İsteğe bağlı');
-  $('itemScope').textContent=kinds.includes('profile') ? t('Profil bağlantısı gönderi listesi içindir; motorun profil desteğine bağlıdır. Story listesi için /stories/hesap/ kullanın. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır.') : t('Story hesap listesi veya post içindeki öğeler seçilir. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır; tarih sırası garanti edilmez.');
+  const scope=kinds.includes('profile') ? t('Profil bağlantısı gönderi listesi içindir; motorun profil desteğine bağlıdır. Story listesi için /stories/hesap/ kullanın. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır.') : t('Story hesap listesi veya post içindeki öğeler seçilir. Sıra, yt-dlp’nin döndürdüğü listedeki sıradır; tarih sırası garanti edilmez.');
+  $('itemScope').textContent=scope+' '+t('Sıra numaraları yalnızca video içeriklerine göredir; fotoğraflar sayılmaz. Örneğin 6 hikâyenin 2. ve 5. öğeleri videoysa, burada 1 ve 2 kullanılır.');
 }
 function preview() {
   try {
@@ -652,7 +654,7 @@ async function importBackupText(raw) {
 window.receiveBackupImport=importBackupText;
 $('importSettings').onclick=()=>{if(native && typeof native.importBackup==='function') native.importBackup();else $('importFile').click();};
 $('importFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>20*1024*1024)throw Error('File exceeds 20 MB.');await importBackupText(await file.text());}catch(err){alert(err.message);}};
-$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.2.0',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
+$('exportSettings').onclick=()=>exportText(JSON.stringify({app:'YT-DLP Command Builder',version:'1.2.1',exportedAt:new Date().toISOString(),state},null,2),'yt-dlp-builder-backup.json');
 $('export').onclick=()=>exportText(allHistoryText(),'yt-dlp-history.txt');
 function saveNotes() {
   state.notes=$('notes').value;
