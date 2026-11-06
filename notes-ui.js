@@ -26,7 +26,7 @@ window.NotesUI={attach(editor) {
       wordSpacing:style.wordSpacing,tabSize:style.tabSize,padding:style.padding,border:'0'});
     let previous=0;const markers=[];
     for(const group of groups) {
-      mirror.append(document.createTextNode(editor.value.slice(previous,offset)));
+      mirror.append(document.createTextNode(editor.value.slice(previous,group.offset)));
       const marker=document.createElement('span');marker.textContent='\u200b';mirror.append(marker);markers.push({marker,count:group.count});
       previous=group.offset;
     }
