@@ -452,7 +452,7 @@ test('visual tag ranges highlight only short A/S/V labels immediately after vali
   'stories/d/4 VS2s',
   'Serbest açıklama A',
   'A stories/e/5'
- ].join('\\n');
+ ].join('\n');
  const ranges=B.noteVisualTags(value);
  assert.deepEqual(ranges.map(range=>range.text),['V','A12','SX1']);
  assert.deepEqual(ranges.map(range=>value.slice(range.start,range.end)),['V','A12','SX1']);
