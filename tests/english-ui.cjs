@@ -138,7 +138,7 @@ const root=path.resolve(__dirname,'..');
   await page.locator('#historyPanel').screenshot({path:path.join(root,'test-results/history-icons-rounded-en.png')});
   for(const id of ['settingsPanel','historyPanel'])assert.equal(await page.locator('#'+id).evaluate(el=>getComputedStyle(el).borderTopColor),'rgba(0, 0, 0, 0)');
 
-  assert.equal(await page.locator('#clear').evaluate(el=>getComputedStyle(el).borderTopColor),'rgb(51, 51, 51)');
+  assert.equal(await page.locator('#clear').evaluate(el=>getComputedStyle(el).borderTopColor),'rgb(48, 48, 48)');
   await page.locator('.history-item summary').first().click();
   for(const width of [320,390,650]) {
     await page.setViewportSize({width,height:844});
