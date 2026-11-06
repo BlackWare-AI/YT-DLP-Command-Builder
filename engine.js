@@ -195,10 +195,10 @@
   // immediately following a valid Instagram content URL on the same line.
   function noteVisualTags(text) {
     const ranges=[];
-    const route=String.raw`(?:(?:https?:\\/\\/)?(?:www\\.)?instagram\\.com\\/)?(?:stories\\/[a-z0-9._]+(?:\\/[a-z0-9_-]+)?|(?:reel|p|tv)\\/[a-z0-9_-]+)\\/?(?:[?#][^\\s)]*)?`;
-    const pattern=new RegExp(String.raw`(^|[\\s(])(${route})(\\)?)\\s+([ASV][a-z0-9]{0,2})(?=$|\\s|[(:])`,'gi');
+    const route=String.raw`(?:(?:https?:\/\/)?(?:www\.)?instagram\.com\/)?(?:stories\/[a-z0-9._]+(?:\/[a-z0-9_-]+)?|(?:reel|p|tv)\/[a-z0-9_-]+)\/?(?:[?#][^\s)]*)?`;
+    const pattern=new RegExp(String.raw`(^|[\s(])(${route})(\)?)\s+([ASV][a-z0-9]{0,2})(?=$|\s|[(:])`,'gi');
     let offset=0;
-    for(const line of String(text).split(/\\r?\\n/)) {
+    for(const line of String(text).split(/\r?\n/)) {
       pattern.lastIndex=0;let match;
       while((match=pattern.exec(line))) {
         if(!parseUrls(match[2],true).length) continue;
