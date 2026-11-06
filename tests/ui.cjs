@@ -245,7 +245,7 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.locator('#modes button[data-value]').count(),6);
   assert.equal(await page.locator('#modes [data-value=frame_sclip] strong').textContent(),'Kesit + Kare');
   assert.equal(await page.locator('#modes [data-value=frame_sclip] small').textContent(),'Kısa kesit ve kare');
-  assert.deepEqual(await page.locator('#modes [data-value=frame_sclip] svg').evaluate(svg=>({width:svg.getAttribute('width'),height:svg.getAttribute('height')})),{width:'25',height:'25'});
+  assert.deepEqual(await page.locator('#modes [data-value=frame_sclip] svg').evaluate(svg=>({width:svg.getAttribute('width'),height:svg.getAttribute('height')})),{width:'24',height:'24'});
   assert.equal(await page.locator('#notesBtn').innerText(),'Link Notları');
   assert.equal(await page.locator('#notesBtn svg').count(),1);
   const toolbar=await page.evaluate(()=>{const a=document.getElementById('notesBtn').getBoundingClientRect(),b=document.getElementById('copy').getBoundingClientRect(),m=document.querySelector('#modes button').getBoundingClientRect();return {notes:{width:a.width,height:a.height},copy:{width:b.width,height:b.height},mode:{height:m.height},copyBackground:getComputedStyle(document.getElementById('copy')).backgroundColor,copyColor:getComputedStyle(document.getElementById('copy')).color};});
