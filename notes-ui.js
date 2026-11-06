@@ -52,7 +52,7 @@ window.NotesUI={attach(editor) {
       const chip=document.createElement('span');chip.className='notes-inline-tag';chip.textContent=item.text;
       const top=item.rect.top-mirrorRect.top+borderTop-1+(item.rect.height-14)/2;
       const left=item.rect.left-mirrorRect.left+borderLeft-3;
-      Object.assign(chip.style,{left:left+'px',top:top+'px',width:(item.rect.width+4)+'px'});
+      Object.assign(chip.style,{left:left+'px',top:'0px',width:(item.rect.width+4)+'px'});
       layer.append(chip);positions.push(top);
     }
     for(const item of measuredDividers) {
