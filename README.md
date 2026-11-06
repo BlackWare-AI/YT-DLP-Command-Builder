@@ -25,7 +25,7 @@ Add your links, select an engine and download mode, then copy the command into T
 
 ## APK editions
 
-Both editions are published under **v1.2.0** in this repository: `YT-DLP-Command-Builder-v1.2.0.apk` (TR) and `YT-DLP-Command-Builder-v1.2.0-EN.apk` (EN). They use separate Android application IDs and local storage, so they can be installed together. Existing Turkish installations update in place.
+Both editions are published under **v1.2.1** in this repository: `YT-DLP-Command-Builder-v1.2.1.apk` (TR) and `YT-DLP-Command-Builder-v1.2.1-EN.apk` (EN). They use separate Android application IDs and local storage, so they can be installed together. Existing Turkish installations update in place.
 
 ## Our goal
 
@@ -108,7 +108,7 @@ The repository contains the Android project, shared web interface, tests, and Gi
 - Debug build: `.github/workflows/android.yml`
 - Release workflow: `.github/workflows/release.yml`
 - Package: `com.blackware.ytdlpcommandbuilder`
-- Current documented version: `1.2.0`
+- Current documented version: `1.2.1`
 
 To build locally, use JDK 17, Android SDK 35, and the project's Gradle configuration:
 
