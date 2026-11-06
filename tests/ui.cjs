@@ -159,7 +159,7 @@ const root=path.resolve(__dirname,'..');
   assert.match(exportedFixture,/stories\/archived.export\/777 V1s/);
   assert.match(exportedFixture,/stories\/current.export\/888 S/);
   assert.match(exportedFixture,/İŞLEM GEÇMİŞİ/);
-  assert.equal(await page.textContent('#export'),'Geçmişi aktar');
+  assert.equal(await page.textContent('#export'),'');
   await page.evaluate(()=>{
     window.originalHistory=state.history;
     const record=date=>({date,urls:['https://instagram.com/reel/example'],mode:'video',engine:'normal',command:'example'});
@@ -170,7 +170,11 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.locator('.history-day').count(),2);
   assert.equal(await page.locator('#close').count(),0);
   assert.deepEqual(await page.locator('.history-actions > button').evaluateAll(nodes=>nodes.map(el=>el.id)),['importSettings','exportSettings','export','clear']);
-  assert.equal(await page.locator('.history-actions > button').first().evaluate(el=>getComputedStyle(el).fontSize),'11px');
+  const historyTools=page.locator('.history-actions > button');
+  assert.deepEqual(await historyTools.evaluateAll(nodes=>nodes.map(el=>el.getAttribute('aria-label'))),['Tam JSON yedeğini içe aktar','Tüm ayarları dışa aktar (JSON)','Geçmişi dışa aktar','Tüm işlem geçmişini temizle']);
+  assert.deepEqual(await historyTools.allTextContents(),['','','','']);
+  assert.deepEqual(await historyTools.evaluateAll(nodes=>nodes.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height,r:getComputedStyle(el).borderTopLeftRadius,svg:el.querySelector('svg')&&[el.querySelector('svg').getAttribute('width'),el.querySelector('svg').getAttribute('height')]}))),
+    [{w:44,h:44,r:'18px',svg:['24','24']},{w:44,h:44,r:'15px',svg:['24','24']},{w:44,h:44,r:'12px',svg:['24','24']},{w:44,h:44,r:'12px',svg:['24','24']}]);
   assert.equal(await page.locator('.history-day[open]').count(),0);
   assert.equal(await page.locator('.history-day').first().locator('.history-item').count(),2);
   assert.equal(await page.locator('.history-item summary').first().isVisible(),false);
