@@ -183,7 +183,7 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.locator('.history-item pre').count(),0);
   await page.locator('.history-item summary').first().click();await page.waitForSelector('.history-item button');
   const borders=await page.locator('.history-item').first().locator('button').evaluateAll(nodes=>nodes.map(el=>getComputedStyle(el).borderTopColor));
-  assert.deepEqual(borders,Array(3).fill('rgb(51, 51, 51)'));
+  assert.deepEqual(borders,Array(3).fill('rgb(48, 48, 48)'));
   const recordActions=page.locator('.history-item').first().locator('.history-item-actions > button');
   assert.deepEqual(await recordActions.evaluateAll(nodes=>nodes.map(n=>n.getAttribute('aria-label'))),['Tekrar düzenle','Kopyala','Sil']);
   assert.deepEqual(await recordActions.allTextContents(),['','','']);
