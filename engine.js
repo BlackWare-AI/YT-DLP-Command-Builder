@@ -185,10 +185,29 @@
       blank=line.trim() ? null : position;
       position+=line.length+1;
     }
+    if(tag!==null) groups.push({offset:blank!==null ? blank : String(text).length,count,afterEnd:blank===null});
     return groups;
   }
   function noteSeparatorOffsets(text) {
     return noteSeparatorGroups(text).map(group=>group.offset);
+  }
+  // Visual-only inline labels: only A/S/V plus up to two alphanumeric suffixes,
+  // immediately following a valid Instagram content URL on the same line.
+  function noteVisualTags(text) {
+    const ranges=[];
+    const route=String.raw`(?:(?:https?:\\/\\/)?(?:www\\.)?instagram\\.com\\/)?(?:stories\\/[a-z0-9._]+(?:\\/[a-z0-9_-]+)?|(?:reel|p|tv)\\/[a-z0-9_-]+)\\/?(?:[?#][^\\s)]*)?`;
+    const pattern=new RegExp(String.raw`(^|[\\s(])(${route})(\\)?)\\s+([ASV][a-z0-9]{0,2})(?=$|\\s|[(:])`,'gi');
+    let offset=0;
+    for(const line of String(text).split(/\\r?\\n/)) {
+      pattern.lastIndex=0;let match;
+      while((match=pattern.exec(line))) {
+        if(!parseUrls(match[2],true).length) continue;
+        const start=offset+match.index+match[0].lastIndexOf(match[4]);
+        ranges.push({start,end:start+match[4].length,text:match[4]});
+      }
+      offset+=line.length+1;
+    }
+    return ranges;
   }
   function parseUrls(text, skipInvalid) {
     const urls = [];
@@ -602,5 +621,5 @@
     return {command:args.join(' \\\n  '), urls, settings:s,
       cuts:['av','video'].includes(s.mode) ? cuts : [], selection:input.selection || {}, commandCount:1};
   }
-  return {defaults, normalizeSettings, quote, shellPath, collectionKind, selectionSpec, normalizeBareUsernames, cleanNoteUrls, cleanNotes, mergeDailyNotes, spaceNoteGroups, noteSeparatorOffsets, noteSeparatorGroups, countNoteLinks, parseUrls, removeUrl, validateCut, template, storyMetadata, build};
+  return {defaults, normalizeSettings, quote, shellPath, collectionKind, selectionSpec, normalizeBareUsernames, cleanNoteUrls, cleanNotes, mergeDailyNotes, spaceNoteGroups, noteSeparatorOffsets, noteSeparatorGroups, noteVisualTags, countNoteLinks, parseUrls, removeUrl, validateCut, template, storyMetadata, build};
 });
