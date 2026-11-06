@@ -113,7 +113,7 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.locator('.history-item pre').count(),0);
   await page.locator('.history-item summary').first().click();await page.waitForSelector('.history-item button');
   const borders=await page.locator('.history-item').first().locator('button').evaluateAll(nodes=>nodes.map(el=>getComputedStyle(el).borderTopColor));
-  assert.deepEqual(borders,Array(3).fill('rgb(48, 48, 48)'));
+  assert.deepEqual(borders,Array(3).fill('rgb(51, 51, 51)'));
   const recordActions=page.locator('.history-item').first().locator('.history-item-actions > button');
   assert.deepEqual(await recordActions.evaluateAll(nodes=>nodes.map(n=>n.getAttribute('aria-label'))),['Edit again','Copy','Delete']);
   assert.deepEqual(await recordActions.allTextContents(),['','','']);
@@ -138,7 +138,7 @@ const root=path.resolve(__dirname,'..');
   await page.locator('#historyPanel').screenshot({path:path.join(root,'test-results/history-icons-rounded-en.png')});
   for(const id of ['settingsPanel','historyPanel'])assert.equal(await page.locator('#'+id).evaluate(el=>getComputedStyle(el).borderTopColor),'rgba(0, 0, 0, 0)');
 
-  assert.equal(await page.locator('#clear').evaluate(el=>getComputedStyle(el).borderTopColor),'rgb(51, 51, 51)');
+  assert.equal(await page.locator('#clear').evaluate(el=>getComputedStyle(el).borderTopColor),'rgb(48, 48, 48)');
   await page.locator('.history-item summary').first().click();
   for(const width of [320,390,650]) {
     await page.setViewportSize({width,height:844});
