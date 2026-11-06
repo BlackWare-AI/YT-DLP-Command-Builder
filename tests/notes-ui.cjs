@@ -31,6 +31,7 @@ const root=path.resolve(__dirname,'..');
    const shown=await page.inputValue('#notes');
    assert.equal(shown,'stories/user.a/1 V\nstories/user.c/3 V\n\nreel/B S\n\nreel/D V1s');
    assert.equal(await page.locator('.notes-group-divider').count(),2);
+   assert.deepEqual(await page.locator('.notes-group-count').allTextContents(),edition==='en'?['2 links','1 link']:['2 bağlantı','1 bağlantı']);
    await page.focus('#notes');await page.keyboard.press('ControlOrMeta+A');await page.keyboard.press('ControlOrMeta+C');
    const copied=await page.evaluate(()=>navigator.clipboard.readText());assert.equal(copied,shown);assert.doesNotMatch(copied,/- -/);
    const log=()=>page.evaluate(()=>state.notesDailyHistory.find(x=>x.date==='2026-10-29').notes);
@@ -123,5 +124,15 @@ const root=path.resolve(__dirname,'..');
    assert.deepEqual(errors,[]);await context.close();
    console.log('PASS '+edition+': cumulative unique notes, latest annotations, retained deletions, independent commands, no-op saves, dated draft recovery and non-copyable one-row dividers');
   }
+  const fallbackContext=await browser.newContext({viewport:{width:390,height:844}});
+  await fallbackContext.addInitScript(()=>{Object.defineProperty(window,'ResizeObserver',{value:undefined,configurable:true});});
+  const fallback=await fallbackContext.newPage(),fallbackErrors=[];
+  fallback.on('pageerror',e=>fallbackErrors.push(e.message));
+  await fallback.goto('http://127.0.0.1:'+server.address().port+'/');
+  assert.equal(await fallback.evaluate(()=>typeof window.handleBack==='function'),true);
+  await fallback.click('#notesBtn');await fallback.fill('#notes','stories/old.webview/1 V\\n\\nreel/old.webview S');
+  assert.deepEqual(await fallback.locator('.notes-group-count').allTextContents(),['1 bağlantı']);
+  assert.deepEqual(fallbackErrors,[]);
+  await fallbackContext.close();
  } finally {await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});
