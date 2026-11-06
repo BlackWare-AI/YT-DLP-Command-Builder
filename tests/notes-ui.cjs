@@ -104,6 +104,20 @@ const root=path.resolve(__dirname,'..');
    assert.equal(await visual.inputValue('#notes'),tagged);
    assert.equal(await visual.locator('.notes-inline-tag').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
    assert.equal(await visual.locator('.notes-inline-tag').first().evaluate(el=>getComputedStyle(el).color),'rgb(0, 0, 0)');
+   const tagAlignment=await visual.evaluate(()=>{
+    const editor=document.getElementById('notes'),style=getComputedStyle(editor),rect=editor.getBoundingClientRect();
+    const lineHeight=parseFloat(style.lineHeight),borderTop=parseFloat(style.borderTopWidth)||0,paddingTop=parseFloat(style.paddingTop)||0;
+    const chips=Array.from(document.querySelectorAll('.notes-inline-tag'));
+    return chips.map((chip,index)=>{
+     const r=chip.getBoundingClientRect();
+     const expected=rect.top+borderTop+paddingTop+index*lineHeight+(lineHeight-r.height)/2;
+     return {top:r.top,expected,diff:r.top-expected};
+    });
+   });
+   assert.equal(tagAlignment.length,3);
+   assert.ok(tagAlignment.every(item=>Math.abs(item.diff)<=2.5),JSON.stringify(tagAlignment));
+   assert.ok(Math.abs((tagAlignment[1].top-tagAlignment[0].top)-(tagAlignment[2].top-tagAlignment[1].top))<=1.5);
+   await visual.screenshot({path:path.join(root,'test-results/notes-inline-tags-aligned-'+edition+'.png')});
    await visual.focus('#notes');await visual.keyboard.press('ControlOrMeta+A');await visual.keyboard.press('ControlOrMeta+C');
    assert.equal(await visual.evaluate(()=>navigator.clipboard.readText()),tagged);
    // Old logs are filtered in the viewer too; the editable note is not trimmed.
